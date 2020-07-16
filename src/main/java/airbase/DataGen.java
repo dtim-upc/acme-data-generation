@@ -8,8 +8,7 @@ import java.util.*;
 
 public class DataGen {
 
-
-    public static void main(String[] args) {
+    public void generate() {
 
         final int SIZE = 100000;
         final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -54,12 +53,8 @@ public class DataGen {
 
         final int MAX_WORK_ORDERS = 1;
 
-
         // Slots
-
-
         //aircraft registration
-
         // fleet
         String[] fleet = new String[FLEET_SIZE];
         String[] MSNs = new String[FLEET_SIZE];
