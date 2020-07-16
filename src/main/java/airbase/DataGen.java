@@ -10,7 +10,7 @@ public class DataGen {
 
     public void generate() {
 
-        final int SIZE = 100000;
+        final int SIZE = 10; // number of rows of the final CSV
         final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         final String digits = "0123456789";
 
@@ -53,11 +53,9 @@ public class DataGen {
 
         final int MAX_WORK_ORDERS = 1;
 
-        // Slots
-        //aircraft registration
-        // fleet
-        String[] fleet = new String[FLEET_SIZE];
-        String[] MSNs = new String[FLEET_SIZE];
+        // AIMS.slots
+        String[] fleet = new String[FLEET_SIZE]; // fleet
+        String[] MSNs = new String[FLEET_SIZE]; //
         String[] models = new String[FLEET_SIZE];
         String[] manufacturers = new String[FLEET_SIZE];
 
@@ -70,7 +68,7 @@ public class DataGen {
             manufacturers[i] = aircraftManufacturers[k];
         }
 
-        ///CSV fleet generation
+        /// CSV fleet generation to be saved in aircraft-manufaturerinfo-lookup.csv
         System.out.println("FLEET:");
         System.out.println("aircraft_reg_code,manufacturer_serial_number,aircraft_model,manufacturer");
         for (int i = 0; i < FLEET_SIZE; i++) {
@@ -78,19 +76,19 @@ public class DataGen {
         }
 
 
+        // sample fleet 10000 times (see SIZE variable) into aircraftRegs
         String[] aircraftRegs = new String[SIZE];
         r = new Random(System.currentTimeMillis());
         for (int i = 0; i < SIZE; i++) {
             aircraftRegs[i] = fleet[r.nextInt(fleet.length)];
-
-
         }
 //
 //		for (String ar: aircraftRegs)
 ////			System.out.println(ar);
 //
-        //arrival,  departure, delayCode, canceled
 
+
+        // arrival,  departure, delayCode, canceled
         long diff = end - offset + 1;
 
         Timestamp[] scheduledDepartures = new Timestamp[SIZE];
@@ -101,14 +99,17 @@ public class DataGen {
 
 
         try {
-
+            /* initialize csv file */
             BufferedWriter bw = new BufferedWriter(new FileWriter(new File("output100000-NEW.txt")));
 
             String[] delayCodes = new String[SIZE];
 
             boolean[] canceled = new boolean[SIZE];
 
+
+            // data for AIMS.flights
             for (int i = 0; i < SIZE; i++) {
+                // produce random timestamp
                 Timestamp rand = new Timestamp(offset + (long) (Math.random() * diff));
                 Calendar cal = Calendar.getInstance();
                 cal.setTimeInMillis(rand.getTime());
@@ -122,19 +123,22 @@ public class DataGen {
                 canceled[i] = r.nextBoolean();
 
                 if (canceled[i]) continue;
-
+                // if it was not cancelled, then set delays if any
                 Calendar cal1 = Calendar.getInstance();
                 cal1.setTimeInMillis(scheduledDeparture.getTime());
                 int delay = r.nextInt(MAX_DELAY);
                 delays[i] = delay;
+                // if there was a delay, pick a delay code at random
                 if (delay > 0) delayCodes[i] = delayCodesOptions[r.nextInt(delayCodesOptions.length)];
                 else delayCodes[i] = null;
+                // add the delay in minutes to the actual departure
                 cal1.add(Calendar.MINUTE, delay);
                 Timestamp actualDeparture = new Timestamp(cal1.getTimeInMillis());
                 actualDepartures[i] = actualDeparture;
 
                 Calendar cal2 = Calendar.getInstance();
                 cal2.setTimeInMillis(scheduledArrival.getTime());
+                // assume that the delay shifts the actual arrival time too, for the same amount of time
                 cal1.add(Calendar.MINUTE, delay);
                 Timestamp actualArrival = new Timestamp(cal2.getTimeInMillis());
                 actualArrivals[i] = actualArrival;
@@ -145,40 +149,51 @@ public class DataGen {
 ////			System.out.println(scheduledDepartures[i] + " - " + scheduledArrivals[i]+ "; " + canceled[i] + ", " + delays[i] + " #" + delayCodes[i] + " ;" + actualDepartures[i] + " - " + actualArrivals[i]);
 //		}
 
-            //Slot kinds, origin and destination, passangers
+            // data for
+            //Slot kinds, origin and destination, passengers
 
             String[] slotKinds = new String[SIZE];
 
             String[] flightIDs = new String[SIZE];
 
-
             Pair[] originDest = new Pair[SIZE];
+
             HashMap<String, String> orgDestToFlightNo = new HashMap<String, String>();
 
-            int[] passangers = new int[SIZE];
+            // to AIMS.flights
+            int[] passengers = new int[SIZE];
             int[] cabinCrew = new int[SIZE];
             int[] flightCrew = new int[SIZE];
 
+            // to AIMS.maintenance
             boolean[] programmed = new boolean[SIZE];
 
+            // to AMOS.maintenanceevents
             int[] maintenanceID = new int[SIZE];
             String[] airportMaintenance = new String[SIZE];
             String[] subsystem = new String[SIZE];
             Timestamp[] starttimes = new Timestamp[SIZE];
+
+            // AMOS.maintenanceevents.interval
             int[] days = new int[SIZE]; //days
             int[] hours = new int[SIZE]; //hours
             int[] minutes = new int[SIZE]; //minutes
+
+            // AMOS.maintenanceevents.maintenancekind
             String[] maintenanceKinds = new String[SIZE];
+
+
             Date[] departure = new Date[SIZE];
             UUID[][] attachment_files = new UUID[SIZE][MAX_ATTCH_SIZE];
             String[][] attachment_events = new String[SIZE][MAX_ATTCH_SIZE];
 
 
-            //work package variables
+            //AMOS.workpackages variables
             int[] workPackageIDs = new int[SIZE];
             Date[] executionDates = new Date[SIZE];
             String[] executionPlaces = new String[SIZE];
 
+            //initialize arrays to store 1000 (i.e. SIZE) instances of AMOS.workorders
             int[][] workOrderIDs = new int[SIZE][MAX_WORK_ORDERS];
             String[][] workOrder_aircraftRegs = new String[SIZE][MAX_WORK_ORDERS];
             Date[][] workOrder_executionDates = new Date[SIZE][MAX_WORK_ORDERS];
@@ -199,19 +214,23 @@ public class DataGen {
 
             for (int i = 0; i < SIZE; i++) {
 
+                // pick a slotkind at random from "flight, maintenance"
                 slotKinds[i] = slotKindOptions[r.nextInt(slotKindOptions.length)];
 
-                //if maintenance
+                //if slot kind is Maintenance, and that flight presented delays
                 if (slotKinds[i].equalsIgnoreCase("Maintenance") || delays[i] > 0) {
+                    // AIMS.maintenance.programmed
                     programmed[i] = r.nextBoolean();
-                    maintenanceID[i] = r.nextInt(SIZE - 250);
-                    airportMaintenance[i] = airpotCodes[r.nextInt(airpotCodes.length)];
-                    subsystem[i] = ataCodes[r.nextInt(ataCodes.length)];
-                    starttimes[i] = scheduledDepartures[i];
 
-                    maintenanceKinds[i] = maintenanceEventOptions[r.nextInt(maintenanceEventOptions.length)];
+                    maintenanceID[i] = r.nextInt(SIZE - 250); // AMOS.maintenanceevents.maintenanceid
+                    airportMaintenance[i] = airpotCodes[r.nextInt(airpotCodes.length)]; // AMOS.maintenanceevents.airport
+                    subsystem[i] = ataCodes[r.nextInt(ataCodes.length)]; // AMOS.maintenanceevents.subsystem
+                    starttimes[i] = scheduledDepartures[i]; // AMOS.maintenanceevents.starttime
 
-                    switch (maintenanceKinds[i]) {
+                    maintenanceKinds[i] = maintenanceEventOptions[r.nextInt(maintenanceEventOptions.length)]; // AMOS.maintenanceevents.kind
+
+
+                    switch (maintenanceKinds[i]) { //
                         case "Delay": {
                             minutes[i] = r.nextInt(60);
                             break;
@@ -242,19 +261,20 @@ public class DataGen {
                         }
                     }
 
-                    departure[i] = new Date(scheduledDepartures[i].getTime());
+                    departure[i] = new Date(scheduledDepartures[i].getTime()); // I think this is AMOS.operationinterruption.departure
 
 
                     for (int j = 0; j < MAX_ATTCH_SIZE; j++) {
-                        attachment_files[i][j] = UUID.randomUUID();
-                        attachment_events[i][j] = Integer.toString(maintenanceID[i]);
+                        attachment_files[i][j] = UUID.randomUUID(); // AMOS.attachments.file
+                        attachment_events[i][j] = Integer.toString(maintenanceID[i]); // AMOS.attachments.event is the same as AMOS.maintenanceevents.maintenanceid
                     }
 
 
                     //WorkPackages
-                    workPackageIDs[i] = r.nextInt(SIZE - 250);
-                    executionDates[i] = departure[i];
-                    executionPlaces[i] = airportMaintenance[i];
+                    workPackageIDs[i] = r.nextInt(SIZE - 250); //AMOS.workpackages.workpackageid
+                    executionDates[i] = departure[i]; // AMOS.workpackages.executiondate
+                    executionPlaces[i] = airportMaintenance[i]; // AMOS.workpackages.executionplace
+
 
                     for (int j = 0; j < MAX_WORK_ORDERS; j++) {
                         workOrderIDs[i][j] = r.nextInt(SIZE - 250);
@@ -340,7 +360,7 @@ public class DataGen {
                 }
 
 
-                passangers[i] = r.nextInt((MAX_PAS - MIN_PAS) + 1) + MIN_PAS;
+                passengers[i] = r.nextInt((MAX_PAS - MIN_PAS) + 1) + MIN_PAS;
                 cabinCrew[i] = r.nextInt((MAX_CCREW - MIN_CCREW) + 1) + MIN_CCREW;
                 flightCrew[i] = r.nextInt((MAX_FCREW - MIN_FCREW) + 1) + MIN_FCREW;
 
@@ -377,7 +397,7 @@ public class DataGen {
 //
 //
 //		for (int i=0; i<SIZE; i++){
-//			System.out.println(passangers[i] + ", "+ cabinCrew[i] + ", " + flightCrew[i]);
+//			System.out.println(passengers[i] + ", "+ cabinCrew[i] + ", " + flightCrew[i]);
 //		}
 
 
@@ -391,7 +411,7 @@ public class DataGen {
             String outputMaintenances = "";
             for (int i = 0; i < SIZE; i++) {
                 if (slotKinds[i].equalsIgnoreCase("Flight"))
-                    outputFlights += "(" + "'" + aircraftRegs[i] + "'" + "," + "'" + scheduledDepartures[i] + "'" + "," + "'" + scheduledArrivals[i] + "'" + "," + "'" + slotKinds[i] + "'" + "," + "'" + flightIDs[i] + "'" + "," + "'" + originDest[i].first + "'" + "," + "'" + originDest[i].second + "'" + "," + "'" + actualDepartures[i] + "'" + "," + "'" + actualArrivals[i] + "'" + "," + canceled[i] + "," + "'" + delayCodes[i] + "'" + "," + passangers[i] + "," + cabinCrew[i] + "," + flightCrew[i] + "),\n";
+                    outputFlights += "(" + "'" + aircraftRegs[i] + "'" + "," + "'" + scheduledDepartures[i] + "'" + "," + "'" + scheduledArrivals[i] + "'" + "," + "'" + slotKinds[i] + "'" + "," + "'" + flightIDs[i] + "'" + "," + "'" + originDest[i].first + "'" + "," + "'" + originDest[i].second + "'" + "," + "'" + actualDepartures[i] + "'" + "," + "'" + actualArrivals[i] + "'" + "," + canceled[i] + "," + "'" + delayCodes[i] + "'" + "," + passengers[i] + "," + cabinCrew[i] + "," + flightCrew[i] + "),\n";
                 else if (slotKinds[i].equalsIgnoreCase("Maintenance"))
                     outputMaintenances += "(" + "'" + aircraftRegs[i] + "'" + "," + "'" + scheduledDepartures[i] + "'" + "," + "'" + scheduledArrivals[i] + "'" + "," + "'" + slotKinds[i] + "'" + "," + programmed[i] + "),\n";
 
@@ -505,7 +525,7 @@ public class DataGen {
             bw.append("\n");
             bw.append("FORECAST ORDERS" + "\n");
             bw.append(forecastedOrders.replaceAll("'null'", "null"));
-            System.out.println("Forcast orders finished!");
+            System.out.println("Forecast orders finished!");
 
 
             bw.append("\n");

@@ -24,7 +24,7 @@ public class Main {
             cmd = parser.parse(options, args);
         } catch (ParseException e) {
             System.out.println(e.getMessage());
-            formatter.printHelp("airbaseGen", options, true);
+            formatter.printHelp("DataGen", options, true);
             System.exit(1);
         }
 
@@ -35,6 +35,5 @@ public class Main {
         //run generator
         DataGen dg = new DataGen();
         dg.generate();
-
     }
 }
