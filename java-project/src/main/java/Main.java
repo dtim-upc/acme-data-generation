@@ -1,5 +1,5 @@
 import org.apache.commons.cli.*;
-import airbase.DataGen;
+import edu.upc.miri.airbase.DataGen;
 
 public class Main {
     public static void main(String[] args) throws Exception {

@@ -1,4 +1,4 @@
-package airbase;
+package edu.upc.miri.airbase;
 
 import java.io.BufferedWriter;
 import java.io.File;
