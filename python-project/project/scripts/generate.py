@@ -380,6 +380,18 @@ class AircraftGenerator:
 
         return output_flights
 
+    def get_maintenances(self) -> T.Generator:
+        output_maintenances = (
+            [
+                self.aircraft_registrations[i],
+                self.scheduled_departures[i],
+                self.scheduled_arrivals[i],
+                self.slot_kinds[i],
+                self.programmed[i],
+            ]
+            for i in range(self.config.SIZE)
+        )
+        return output_maintenances
 
 class Flight(object):
     def __init__(self, config: Config, scheduled_departure: datetime, aircraft_registration: str):
