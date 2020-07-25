@@ -203,9 +203,7 @@ class AircraftGenerator:
             # check
             if self.slots_kinds[i] == "Maintenance" or self.delays[i] > 0:
                 self.programmed[i] = fake.pybool()  # AIMS.maintenance.programmed
-                self.maintenance_id[i] = random.randrange(
-                    0, self.config.SIZE - 250
-                )  # AMOS.maintenanceevents.maintenanceid
+                self.maintenance_id[i] = random.randrange(self.config.SIZE)  # AMOS.maintenanceevents.maintenanceid
                 # TODO: why 250? should this be a parameter
                 self.airport_maintenance[i] = random.choice(self.config.AIRPORTCODES)  #  AMOS.maintenanceevents.airport
                 self.subsystem[i] = random.choice(self.config.ATACODES)  # AMOS.maintenanceevents.subsystem
@@ -246,13 +244,13 @@ class AircraftGenerator:
                     self.attachment_events[i][j] = str(self.maintenance_id[i])
 
                 # AMOS.workpackages
-                self.work_package_ids[i] = random.randrange(self.config.SIZE - 250)  # AMOS.workpackages.workpackageid
+                self.work_package_ids[i] = random.randrange(self.config.SIZE)  # AMOS.workpackages.workpackageid
                 self.execution_dates[i] = self.departure[i]  # AMOS.workpackages.executiondate
                 self.execution_places[i] = self.airport_maintenance[i]  # AMOS.workpackages.executionplace
 
                 #
                 for j in range(self.config.MAX_WORK_ORDERS):
-                    self.workorder_ids[i][j] = random.randrange(self.config.SIZE - 250)
+                    self.workorder_ids[i][j] = random.randrange(self.config.SIZE)
                     self.workorder_aircraftregs[i][j] = self.aircraft_registrations[i]
                     self.workorder_executiondates[i][j] = self.departure[i]
                     self.workorder_executionplaces[i][j] = self.airport_maintenance[i]
@@ -381,7 +379,6 @@ class AircraftGenerator:
         )
 
         return output_flights
-    
 
 
 class Flight(object):
