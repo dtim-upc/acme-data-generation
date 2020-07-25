@@ -9,11 +9,18 @@ pylint = "*"
 ipython = "*"
 sqlacodegen = "*"
 black = "*"
+mypy = "*"
+filprofiler = "*"
+pytest = "*"
+coverage = "*"
+pytest-cov = "*"
 
 [packages]
 alembic = "*"
 sqlalchemy = "*"
 psycopg2-binary = "*"
+setuptools = "*"
+faker = "*"
 
 [requires]
 python_version = "3.8"

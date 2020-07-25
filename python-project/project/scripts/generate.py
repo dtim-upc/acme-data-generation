@@ -1,7 +1,8 @@
-import datetime as dt
 import logging
 import random
 import typing as T
+import datetime as dt
+from pathlib import Path
 from datetime import datetime
 from uuid import UUID
 
@@ -17,7 +18,7 @@ random.seed(Config.SEED)
 logging.basicConfig(level=logging.DEBUG)  # use root logger
 
 
-class Generator:
+class AircraftGenerator:
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -118,6 +119,7 @@ class Generator:
         return self
 
     def rest(self):
+        # TODO: refactor this
         # slots kinds, origin and destination, passengers info
         self.slots_kinds: T.List[str] = self._preallocate_array()
         self.flight_ids: T.List[str] = self._preallocate_array()
@@ -301,7 +303,9 @@ class Generator:
             # if no maintenance and no delays
             # construct flight
             flight_pair = Flight(
-                config=self.config, scheduled_departure=self.scheduled_departures[i], aircraft_id=self.aircraft_registrations[i]
+                config=self.config,
+                scheduled_departure=self.scheduled_departures[i],
+                aircraft_registration=self.aircraft_registrations[i],
             )
 
             # TODO: don't know why is this necessary
@@ -313,6 +317,8 @@ class Generator:
             self.cabin_crew[i] = flight_pair.cabin_crew
             self.flight_crew[i] = flight_pair.flight_crew
             self.flight_ids[i] = flight_pair.flight_id
+
+        return self
 
     #                 /////////////////////////
     #                 //if flight
@@ -346,10 +352,40 @@ class Generator:
 
     #             }
 
+    def populate(self):
+        self.create_fleet()
+        self.create_aircraft_registrations()
+        self.create_timestamps()
+        self.rest()
+        return self
+
+    def get_flights(self, output: Path = None) -> T.Generator:
+        output_flights = (
+            [
+                self.aircraft_registrations[i],
+                self.scheduled_departures[i],
+                self.scheduled_arrivals[i],
+                self.slots_kinds[i],
+                self.flight_ids[i],
+                self.origin_dest[i].orig,
+                self.origin_dest[i].dest,
+                self.actual_departures[i],
+                self.actual_arrivals[i],
+                self.cancelled[i],
+                self.delay_codes[i],
+                self.passengers[i],
+                self.cabin_crew[i],
+                self.flight_crew[i],
+            ]
+            for i in range(self.config.SIZE)
+        )
+
+        return output_flights
+    
+
 
 class Flight(object):
-    def __init__(self, config: Config, scheduled_departure: datetime, aircraft_id: str):
-        # super().__init__()
+    def __init__(self, config: Config, scheduled_departure: datetime, aircraft_registration: str):
         self.route: T.List[str] = random.sample(config.AIRPORTCODES, k=2)
         self.orig: str = self.route[0]
         self.dest: str = self.route[1]
@@ -360,13 +396,19 @@ class Flight(object):
 
         # TODO: refactor code to remove these args and init them here
         self.scheduled_departure: datetime = scheduled_departure
-        self.aircraft_id: str = aircraft_id
+        self.aircraft_registration: str = aircraft_registration
 
         # stfrtime uses here the format that was in the java code.
         # This date is not ISO 8601 compliant, but it could be set
         # as a config parameter later, I guess
         self.flight_id: str = "-".join(
-            [self.scheduled_departure.strftime("%d-%m-%Y"), self.orig, self.dest, self.flight_number, self.aircraft_id]
+            [
+                self.scheduled_departure.strftime("%d-%m-%Y"),
+                self.orig,
+                self.dest,
+                self.flight_number,
+                self.aircraft_registration,
+            ]
         )
 
     @property
@@ -379,9 +421,7 @@ class Flight(object):
 
 if __name__ == "__main__":
 
-    g = Generator(config=Config)
-    g.create_fleet()
-    g.create_aircraft_registrations()
-    g.create_timestamps()
-    g.rest()
+    g = AircraftGenerator(config=Config)
+    g.populate()
     logging.debug(g.flight_ids)
+
