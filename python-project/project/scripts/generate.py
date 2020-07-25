@@ -421,7 +421,7 @@ class Flight(object):
         )
 
     @property
-    def as_tuple(self) -> tuple:
+    def as_tuple(self) -> T.Tuple:
         return tuple(self.route)
 
     def __str__(self):
