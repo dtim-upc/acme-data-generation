@@ -10,7 +10,7 @@ public class DataGen {
 
     public void generate() {
 
-        final int SIZE = 10; // number of rows of the final CSV
+        final int SIZE = 1000; // number of rows of the final CSV
         final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         final String digits = "0123456789";
 
@@ -28,7 +28,7 @@ public class DataGen {
 
         final String regPrefix = "XY-";
 
-        final String[] airpotCodes = {"TIA", "EVN", "GRZ", "INN", "KLU", "LNZ", "SZG", "VIE", "GYD", "MSQ", "ANR", "BRU", "CRL", "LGG", "OST", "SJJ", "TZL", "BOJ", "SOF", "VAR", "DBV", "PUY", "SPU", "ZAD", "ZAG", "LCA", "PFO", "BRQ", "PRG", "AAL", "AAR", "BLL", "CPH", "FAE", "TLL", "HEL", "OUL", "RVN", "TMP", "TKU", "VAA", "AJA", "BIA", "EGC", "BIQ", "BOD", "BES", "FSC", "LIL", "LYS", "MRS", "MPL", "NTE", "NCE", "BVA", "CDG", "ORY", "SXB", "RNS", "RUN", "TLN", "TLS", "TBS", "FMM", "BER", "SXF", "TXL", "BRE", "CGN", "DTM", "DRS", "DUS", "FRA", "HHN", "FDH", "HAM", "HAJ", "FKB", "LEJ", "MUC", "FMO", "NUE", "PAD", "STR", "NRN", "ATH", "CHQ", "CFU", "HER", "KGS", "JMK", "RHO", "JTR", "SKG", "ZTH", "BUD", "DEB", "KEF", "ORK", "DUB", "NOC", "KIR", "SNN", "AHO", "AOI", "BRI", "BGY", "BLQ", "BDS", "CAG", "CTA", "CIY", "FLR", "GOA", "SUF", "LIN", "MXP", "NAP", "OLB", "PMO", "PEG", "PSR", "PSA", "CIA", "FCO", "TPS", "TSF", "TRN", "VCE", "VRN", "ALA", "TSE", "PRN", "RIX", "KUN", "VNO", "LUX", "SKP", "MLA", "KIV", "TGD", "TIV", "AMS", "EIN", "GRQ", "MST", "RTM", "AES", "BGO", "BOO", "HAU", "KRS", "OSL", "TRF", "SVG", "TOS", "TRD", "GDN", "KTW", "KRK", "POZ", "WAW", "WMI", "WRO", "FAO", "LIS", "FNC", "PDL", "OPO", "OTP", "CLJ", "IAS", "TSR", "SVX", "DME", "SVO", "VKO", "OVB", "LED", "AER", "BEG", "INI", "BTS", "KSC", "LJU", "ALC", "LEI", "OVD", "BCN", "BIO", "FUE", "GRO", "LPA", "IBZ", "XRY", "SPC", "ACE", "MAD", "AGP", "MAH", "PMI", "RMU", "REU", "SDR", "SCQ", "SVQ", "TFN", "TFS", "VLC", "ZAZ", "GOT", "MMX", "ARN", "BMA", "NYO", "VST", "BSL", "BRN", "GVA", "LUG", "ZRH", "ADA", "ESB", "AYT", "DLM", "IST", "SAW", "ADB", "BJV", "TZX", "KBP", "IEV", "LWO", "ODS", "ABZ", "BHD", "BFS", "BHX", "BRS", "CWL", "DSA", "EMA", "EDI", "EXT", "GLA", "PIK", "HUY", "JER", "LBA", "LPL", "LCY", "LGW", "LHR", "LTN", "SEN", "STN", "MAN", "NCL", "SOU"};
+        final String[] airportCodes = {"TIA", "EVN", "GRZ", "INN", "KLU", "LNZ", "SZG", "VIE", "GYD", "MSQ", "ANR", "BRU", "CRL", "LGG", "OST", "SJJ", "TZL", "BOJ", "SOF", "VAR", "DBV", "PUY", "SPU", "ZAD", "ZAG", "LCA", "PFO", "BRQ", "PRG", "AAL", "AAR", "BLL", "CPH", "FAE", "TLL", "HEL", "OUL", "RVN", "TMP", "TKU", "VAA", "AJA", "BIA", "EGC", "BIQ", "BOD", "BES", "FSC", "LIL", "LYS", "MRS", "MPL", "NTE", "NCE", "BVA", "CDG", "ORY", "SXB", "RNS", "RUN", "TLN", "TLS", "TBS", "FMM", "BER", "SXF", "TXL", "BRE", "CGN", "DTM", "DRS", "DUS", "FRA", "HHN", "FDH", "HAM", "HAJ", "FKB", "LEJ", "MUC", "FMO", "NUE", "PAD", "STR", "NRN", "ATH", "CHQ", "CFU", "HER", "KGS", "JMK", "RHO", "JTR", "SKG", "ZTH", "BUD", "DEB", "KEF", "ORK", "DUB", "NOC", "KIR", "SNN", "AHO", "AOI", "BRI", "BGY", "BLQ", "BDS", "CAG", "CTA", "CIY", "FLR", "GOA", "SUF", "LIN", "MXP", "NAP", "OLB", "PMO", "PEG", "PSR", "PSA", "CIA", "FCO", "TPS", "TSF", "TRN", "VCE", "VRN", "ALA", "TSE", "PRN", "RIX", "KUN", "VNO", "LUX", "SKP", "MLA", "KIV", "TGD", "TIV", "AMS", "EIN", "GRQ", "MST", "RTM", "AES", "BGO", "BOO", "HAU", "KRS", "OSL", "TRF", "SVG", "TOS", "TRD", "GDN", "KTW", "KRK", "POZ", "WAW", "WMI", "WRO", "FAO", "LIS", "FNC", "PDL", "OPO", "OTP", "CLJ", "IAS", "TSR", "SVX", "DME", "SVO", "VKO", "OVB", "LED", "AER", "BEG", "INI", "BTS", "KSC", "LJU", "ALC", "LEI", "OVD", "BCN", "BIO", "FUE", "GRO", "LPA", "IBZ", "XRY", "SPC", "ACE", "MAD", "AGP", "MAH", "PMI", "RMU", "REU", "SDR", "SCQ", "SVQ", "TFN", "TFS", "VLC", "ZAZ", "GOT", "MMX", "ARN", "BMA", "NYO", "VST", "BSL", "BRN", "GVA", "LUG", "ZRH", "ADA", "ESB", "AYT", "DLM", "IST", "SAW", "ADB", "BJV", "TZX", "KBP", "IEV", "LWO", "ODS", "ABZ", "BHD", "BFS", "BHX", "BRS", "CWL", "DSA", "EMA", "EDI", "EXT", "GLA", "PIK", "HUY", "JER", "LBA", "LPL", "LCY", "LGW", "LHR", "LTN", "SEN", "STN", "MAN", "NCL", "SOU"};
 
         final String[] delayCodesOptions = {"00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "11", "12", "13", "14", "15", "16", "17", "18", "19", "21", "22", "23", "24", "25", "26", "27", "28", "29", "31", "32", "33", "34", "35", "36", "37", "38", "39", "41", "42", "43", "44", "45", "46", "47", "48", "51", "52", "55", "56", "57", "58", "61", "62", "63", "64", "65", "66", "67", "68", "69", "71", "72", "73", "75", "76", "77", "81", "82", "83", "84", "85", "86", "87", "88", "89", "91", "92", "93", "94", "95", "96", "97", "98", "99"};
 
@@ -68,7 +68,7 @@ public class DataGen {
             manufacturers[i] = aircraftManufacturers[k];
         }
 
-        /// CSV fleet generation to be saved in aircraft-manufaturerinfo-lookup.csv
+        /// CSV fleet generation to be saved in aircraft-manufacturerinfo-lookup.csv
         System.out.println("FLEET:");
         System.out.println("aircraft_reg_code,manufacturer_serial_number,aircraft_model,manufacturer");
         for (int i = 0; i < FLEET_SIZE; i++) {
@@ -110,12 +110,14 @@ public class DataGen {
             // data for AIMS.flights
             for (int i = 0; i < SIZE; i++) {
                 // produce random timestamp
+                // between two dates and set scheduled departure from them
                 Timestamp rand = new Timestamp(offset + (long) (Math.random() * diff));
                 Calendar cal = Calendar.getInstance();
                 cal.setTimeInMillis(rand.getTime());
                 Timestamp scheduledDeparture = new Timestamp(cal.getTimeInMillis());
                 scheduledDepartures[i] = scheduledDeparture;
 
+                // add a MAX_DUR number of days to the scheduled_departure
                 cal.add(Calendar.HOUR_OF_DAY, r.nextInt(MAX_DUR));
                 Timestamp scheduledArrival = new Timestamp(cal.getTimeInMillis());
                 scheduledArrivals[i] = scheduledArrival;
@@ -223,7 +225,7 @@ public class DataGen {
                     programmed[i] = r.nextBoolean();
 
                     maintenanceID[i] = r.nextInt(SIZE - 250); // AMOS.maintenanceevents.maintenanceid
-                    airportMaintenance[i] = airpotCodes[r.nextInt(airpotCodes.length)]; // AMOS.maintenanceevents.airport
+                    airportMaintenance[i] = airportCodes[r.nextInt(airportCodes.length)]; // AMOS.maintenanceevents.airport
                     subsystem[i] = ataCodes[r.nextInt(ataCodes.length)]; // AMOS.maintenanceevents.subsystem
                     starttimes[i] = scheduledDepartures[i]; // AMOS.maintenanceevents.starttime
 
@@ -348,10 +350,10 @@ public class DataGen {
                 //if flight
                 //if (!slotKinds[i].equalsIgnoreCase("Flight")) continue;
 
-                String origin = airpotCodes[r.nextInt(airpotCodes.length)];
-                String dest = airpotCodes[r.nextInt(airpotCodes.length)];
+                String origin = airportCodes[r.nextInt(airportCodes.length)];
+                String dest = airportCodes[r.nextInt(airportCodes.length)];
                 while (origin.equalsIgnoreCase(dest)) {
-                    dest = airpotCodes[r.nextInt(airpotCodes.length)];
+                    dest = airportCodes[r.nextInt(airportCodes.length)];
                 }
                 originDest[i] = new Pair(origin, dest);
                 if (!orgDestToFlightNo.containsKey(origin + "-" + dest)) {
@@ -430,14 +432,17 @@ public class DataGen {
             String outputOI = "";
             for (int i = 0; i < SIZE; i++) {
                 if (i % 10 != 0) continue;
+                // see rule R15
+                // In MaintenanceEvents, maintenance duration must have the expected length according to the kind of maintenance:
                 if (slotKinds[i].equalsIgnoreCase("Maintenance") || delays[i] > 0)
+
                     if (days[i] > 0) {
 
                         for (int j = 0; j < days[i]; j++) {
 
                             java.util.Calendar c = java.util.Calendar.getInstance();
                             c.setTime(starttimes[i]);
-                            c.add(java.util.Calendar.DAY_OF_MONTH, j);
+                            c.add(java.util.Calendar.DAY_OF_MONTH, j); // TODO: why this approach and not just days[i] like below?
                             c.set(java.util.Calendar.HOUR_OF_DAY, 0);
                             c.set(java.util.Calendar.MINUTE, 0);
                             c.set(java.util.Calendar.SECOND, 0);
@@ -446,14 +451,22 @@ public class DataGen {
 
                             Timestamp newStarttime = new Timestamp(c.getTimeInMillis());
 
-                            outputOI += "(" + maintenanceID[i] + "_" + newStarttime + "," + "'" + aircraftRegs[i] + "'" + "," + "'" + airportMaintenance[i] + "'" + "," + "'" + subsystem[i] + "'" +
-                                    "," + "'" + newStarttime + "'" + "," + "'1:0:0'" + "," + "'" + maintenanceKinds[i] + "'" + "," +
-                                    "'" + flightIDs[i] + "'" + "," + "'" + departure[i] + "'" + "," + "'" + delayCodes[i] + "'" + "),\n";
+                            outputOI += "(" + maintenanceID[i] + "_" + newStarttime + ","
+                                    + "'" + aircraftRegs[i] + "'" + ","
+                                    + "'" + airportMaintenance[i] + "'" + ","
+                                    + "'" + subsystem[i] + "'" + ","
+                                    + "'" + newStarttime + "'" + ","
+                                    + "'1:0:0'" + ","
+                                    + "'" + maintenanceKinds[i] + "'" + "," +
+                                    "'" + flightIDs[i] + "'" + ","
+                                    + "'" + departure[i] + "'" + ","
+                                    + "'" + delayCodes[i] + "'" + "),\n";
 
                             if (j == 0)
-                                attachment_events[i][j] = maintenanceID[i] + "_" + newStarttime;
+                                attachment_events[i][j] = maintenanceID[i] + "_" + newStarttime; // TODO: is the for loop above only to populate attachment events?
                         }
 
+                        // TODO: is this an error? why is it not adding the days and minutes?
                         if (hours[i] > 0 || minutes[i] > 0) {
                             java.util.Calendar c = java.util.Calendar.getInstance();
                             c.setTime(starttimes[i]);
@@ -468,14 +481,30 @@ public class DataGen {
 
                             //int dur = hours[i]*60 + minutes[i];
 
-                            outputOI += "(" + maintenanceID[i] + "_" + newStarttime + "," + "'" + aircraftRegs[i] + "'" + "," + "'" + airportMaintenance[i] + "'" + "," + "'" + subsystem[i] + "'" +
-                                    "," + "'" + newStarttime + "'" + "," + "'0:" + hours[i] + ":" + minutes[i] + "'" + "," + "'" + maintenanceKinds[i] + "'" + "," +
-                                    "'" + flightIDs[i] + "'" + "," + "'" + departure[i] + "'" + "," + "'" + delayCodes[i] + "'" + "),\n";
+                            outputOI += "(" + maintenanceID[i] + "_" + newStarttime +
+                                    "," + "'" + aircraftRegs[i] + "'" +
+                                    "," + "'" + airportMaintenance[i] + "'" +
+                                    "," + "'" + subsystem[i] + "'" +
+                                    "," + "'" + newStarttime + "'" +
+                                    "," + "'0:" + hours[i] + ":" + minutes[i] + "'" +
+                                    "," + "'" + maintenanceKinds[i] + "'" +
+                                    "," +
+                                    "'" + flightIDs[i] + "'" +
+                                    "," + "'" + departure[i] + "'" +
+                                    "," + "'" + delayCodes[i] + "'" + "),\n";
                         }
 
-
                     } else {
-                        outputOI += "(" + maintenanceID[i] + "_" + starttimes[i] + "," + "'" + aircraftRegs[i] + "'" + "," + "'" + airportMaintenance[i] + "'" + "," + "'" + subsystem[i] + "'" + "," + "'" + starttimes[i] + "'" + "," + "'" + days[i] + ":" + hours[i] + ":" + minutes[i] + "'" + "," + "'" + maintenanceKinds[i] + "'" + "," + "'" + flightIDs[i] + "'" + "," + "'" + departure[i] + "'" + "," + "'" + delayCodes[i] + "'" + "),\n";
+                        outputOI += "(" + maintenanceID[i] + "_" + starttimes[i] + ","
+                                + "'" + aircraftRegs[i] + "'" + ","
+                                + "'" + airportMaintenance[i] + "'" + ","
+                                + "'" + subsystem[i] + "'" + ","
+                                + "'" + starttimes[i] + "'" + ","
+                                + "'" + days[i] + ":" + hours[i] + ":" + minutes[i] + "'" + ","
+                                + "'" + maintenanceKinds[i] + "'" + ","
+                                + "'" + flightIDs[i] + "'" + ","
+                                + "'" + departure[i] + "'" + ","
+                                + "'" + delayCodes[i] + "'" + "),\n";
                     }
 
             }
@@ -489,7 +518,9 @@ public class DataGen {
             for (int i = 0; i < SIZE; i++) {
                 if (slotKinds[i].equalsIgnoreCase("Maintenance") || delays[i] > 0) {
                     for (int j = 0; j < MAX_ATTCH_SIZE; j++) {
-                        attachments += "(" + "'" + attachment_files[i][j] + "'" + "," + attachment_events[i][j] + "),\n";
+                        attachments += "("
+                                + "'" + attachment_files[i][j] + "'" + ","
+                                + attachment_events[i][j] + "),\n";
                     }
 
                 }
@@ -501,18 +532,42 @@ public class DataGen {
 
 
             String workPackages = "";
-
             String forecastedOrders = "";
             String technicalLogBookOrders = "";
+
             for (int i = 0; i < SIZE; i++) {
                 if (slotKinds[i].equalsIgnoreCase("Maintenance") || delays[i] > 0) {
-                    workPackages += "(" + workPackageIDs[i] + "," + "'" + executionDates[i] + "'" + "," + "'" + executionPlaces[i] + "'" + "),\n";
+                    workPackages += "(" + workPackageIDs[i] + ","
+                            + "'" + executionDates[i] + "'" + ","
+                            + "'" + executionPlaces[i] + "'" + "),\n";
 
                     for (int j = 0; j < MAX_WORK_ORDERS; j++) {
                         if (workOrder_workOrderKinds[i][j].equalsIgnoreCase("Forecast"))
-                            forecastedOrders += "(" + workOrderIDs[i][j] + "," + "'" + workOrder_aircraftRegs[i][j] + "'" + "," + "'" + workOrder_executionDates[i][j] + "'" + "," + "'" + workOrder_executionPlaces[i][j] + "'" + "," + workOrder_workPackageIDs[i][j] + "," + "'" + workOrder_workOrderKinds[i][j] + "'" + "," + "'" + workOrder_deadlines[i][j] + "'" + "," + "'" + workOrder_plannedDates[i][j] + "'" + "," + workOrder_frequencies[i][j] + "," + "'" + workOrder_frequencyUnits[i][j] + "'" + "," + workOrder_forecastedManHours[i][j] + "),\n";
+                            forecastedOrders +=
+                                    "(" + workOrderIDs[i][j] + ","
+                                    + "'" + workOrder_aircraftRegs[i][j] + "'" + ","
+                                    + "'" + workOrder_executionDates[i][j] + "'" + ","
+                                    + "'" + workOrder_executionPlaces[i][j] + "'" + ","
+                                    + workOrder_workPackageIDs[i][j] + ","
+                                    + "'" + workOrder_workOrderKinds[i][j] + "'" + ","
+                                    + "'" + workOrder_deadlines[i][j] + "'" + ","
+                                    + "'" + workOrder_plannedDates[i][j] + "'" + ","
+                                    + workOrder_frequencies[i][j] + ","
+                                    + "'" + workOrder_frequencyUnits[i][j] + "'" + ","
+                                    + workOrder_forecastedManHours[i][j] + "),\n";
                         else if (workOrder_workOrderKinds[i][j].equalsIgnoreCase("TechnicalLogBook"))
-                            technicalLogBookOrders += "(" + workOrderIDs[i][j] + "," + "'" + workOrder_aircraftRegs[i][j] + "'" + "," + "'" + workOrder_executionDates[i][j] + "'" + "," + "'" + workOrder_executionPlaces[i][j] + "'" + "," + workOrder_workPackageIDs[i][j] + "," + "'" + workOrder_workOrderKinds[i][j] + "'" + "," + "'" + workOrder_reporteurClasses[i][j] + "'" + "," + workOrder_reporteurIDs[i][j] + "," + "'" + workOrder_dueDates[i][j] + "'" + "," + workOrder_deferreds[i][j] + "," + "'" + workOrder_MELs[i][j] + "'" + "," + "'" + workOrder_reportingDate[i][j] + "'" + "),\n";
+                            technicalLogBookOrders += "(" + workOrderIDs[i][j] + ","
+                                    + "'" + workOrder_aircraftRegs[i][j] + "'" + ","
+                                    + "'" + workOrder_executionDates[i][j] + "'" + ","
+                                    + "'" + workOrder_executionPlaces[i][j] + "'" + ","
+                                    + workOrder_workPackageIDs[i][j] + ","
+                                    + "'" + workOrder_workOrderKinds[i][j] + "'" + ","
+                                    + "'" + workOrder_reporteurClasses[i][j] + "'" + ","
+                                    + workOrder_reporteurIDs[i][j] + ","
+                                    + "'" + workOrder_dueDates[i][j] + "'" + ","
+                                    + workOrder_deferreds[i][j] + ","
+                                    + "'" + workOrder_MELs[i][j] + "'" + ","
+                                    + "'" + workOrder_reportingDate[i][j] + "'" + "),\n";
                     }
 
                 }
