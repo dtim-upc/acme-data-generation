@@ -35,10 +35,6 @@ class AircraftGenerator:
         return [None] * size
 
     def create_fleet(self) -> T.Tuple:
-        self.fleet: T.List[str] = self._preallocate_array(size=self.config.FLEET_SIZE)
-        self.MSNs: T.List[str] = self._preallocate_array(size=self.config.FLEET_SIZE)
-        self.models: T.List[str] = self._preallocate_array(size=self.config.FLEET_SIZE)
-        self.manufacturers: T.List[str] = self._preallocate_array(size=self.config.FLEET_SIZE)
 
         # self.fleet generation to be saved in aircraft-manufacturerinfo-lookup.csv
         for i in range(self.config.FLEET_SIZE):
@@ -68,14 +64,6 @@ class AircraftGenerator:
 
     def create_timestamps(self):
         """Creates arrival,  departure, delayCode, canceled"""
-
-        self.scheduled_departures: T.List[datetime] = self._preallocate_array()
-        self.scheduled_arrivals: T.List[datetime] = self._preallocate_array()
-        self.actual_departures: T.List[datetime] = self._preallocate_array()
-        self.actual_arrivals: T.List[datetime] = self._preallocate_array()
-        self.delays: T.List[int] = self._preallocate_array()
-        self.cancelled: T.List[bool] = self._preallocate_array()
-        self.delay_codes: T.List[str] = self._preallocate_array()
 
         # populate arrays
         for i in range(self.config.SIZE):
@@ -118,7 +106,21 @@ class AircraftGenerator:
 
         return self
 
-    def rest(self):
+    def preallocate_arrays(self):
+        # fmt: off
+        self.fleet: T.List[str] = self._preallocate_array(size=self.config.FLEET_SIZE)
+        self.MSNs: T.List[str] = self._preallocate_array(size=self.config.FLEET_SIZE)
+        self.models: T.List[str] = self._preallocate_array(size=self.config.FLEET_SIZE)
+        self.manufacturers: T.List[str] = self._preallocate_array(size=self.config.FLEET_SIZE)
+
+        self.scheduled_departures: T.List[datetime] = self._preallocate_array()
+        self.scheduled_arrivals: T.List[datetime] = self._preallocate_array()
+        self.actual_departures: T.List[datetime] = self._preallocate_array()
+        self.actual_arrivals: T.List[datetime] = self._preallocate_array()
+        self.delays: T.List[int] = self._preallocate_array()
+        self.cancelled: T.List[bool] = self._preallocate_array()
+        self.delay_codes: T.List[str] = self._preallocate_array()
+
         # TODO: refactor this
         # slots kinds, origin and destination, passengers info
         self.slots_kinds: T.List[str] = self._preallocate_array()
@@ -137,15 +139,16 @@ class AircraftGenerator:
         self.programmed: T.List[bool] = self._preallocate_array()
 
         # to AIMS.maintenanceevents
-        self.maintenance_id: T.List[int] = self._preallocate_array()
+        self.maintenance_id: T.List[str] = self._preallocate_array()
         self.airport_maintenance: T.List[str] = self._preallocate_array()
         self.subsystem: T.List[str] = self._preallocate_array()
-        self.starttimes: T.List[datetime] = self._preallocate_array()
+        self.starttimes: T.List[dt.timedelta] = self._preallocate_array()
 
         # AMOS.maintenanceevents.interval
         self.days: T.List[int] = self._preallocate_array()
         self.hours: T.List[int] = self._preallocate_array()
         self.minutes: T.List[int] = self._preallocate_array()
+        self.durations: T.List[str] = self._preallocate_array()
 
         # // AMOS.maintenanceevents.maintenancekind
         self.maintenance_kinds: T.List[str] = self._preallocate_array()
@@ -194,6 +197,7 @@ class AircraftGenerator:
         self.workorder_deferreds: T.List[T.List[bool]] = self._preallocate_array(self._wosize)
         self.workorder_mels: T.List[T.List[str]] = self._preallocate_array(self._wosize)
 
+    def populate_flights_maintenances(self):
         # populate data
         for i in range(self.config.SIZE):
             # pick a slotkind at random from "flight, maintenance"
@@ -202,8 +206,8 @@ class AircraftGenerator:
             # if slot kind is Maintenance, or if that flight presented delays, specify details
             # check
             if self.slots_kinds[i] == "Maintenance" or self.delays[i] > 0:
+
                 self.programmed[i] = fake.pybool()  # AIMS.maintenance.programmed
-                self.maintenance_id[i] = random.randrange(self.config.SIZE)  # AMOS.maintenanceevents.maintenanceid
                 # TODO: why 250? should this be a parameter
                 self.airport_maintenance[i] = random.choice(self.config.AIRPORTCODES)  #  AMOS.maintenanceevents.airport
                 self.subsystem[i] = random.choice(self.config.ATACODES)  # AMOS.maintenanceevents.subsystem
@@ -235,20 +239,38 @@ class AircraftGenerator:
                     self.hours[i] = random.randrange(24)
                     self.minutes[i] = random.randrange(60)
 
+                self.durations[i] = dt.timedelta(
+                    days=self.days[i] or 0, 
+                    hours=self.hours[i] or 0, 
+                    minutes=self.minutes[i] or 0)
+
+                self.maintenance_id[i] = "_".join([
+                        str(random.randrange(self.config.SIZE)),
+                        str(self.starttimes[i] + self.durations[i])]) # AMOS.maintenanceevents.maintenanceid
+                
                 # TODO: check why is this
                 self.departure[i] = self.scheduled_departures[i]  # I think this is AMOS.maintenanceevents.departure
+
+                # TODO: enforce rule R15-D through a configurable file
+                rule_15_d = True
+                if rule_15_d:
+                    if self.durations[i] > dt.timedelta(days=1):
+                        self.durations[i] = dt.timedelta(days=1)
 
                 # AMOS.attachments
                 for j in range(self.config.MAX_ATTCH_SIZE):
                     self.attachment_files[i][j] = fake.uuid4()
-                    self.attachment_events[i][j] = str(self.maintenance_id[i])
+                    # TODO: this is rule R5: 
+                    # event of an Attachement is a reference to maintenanceID of MaintenanceEvents 
+                    # enforce it using a config
+                    self.attachment_events[i][j] = self.maintenance_id[i] 
 
                 # AMOS.workpackages
                 self.work_package_ids[i] = random.randrange(self.config.SIZE)  # AMOS.workpackages.workpackageid
                 self.execution_dates[i] = self.departure[i]  # AMOS.workpackages.executiondate
                 self.execution_places[i] = self.airport_maintenance[i]  # AMOS.workpackages.executionplace
 
-                #
+                # AMOS.workorders
                 for j in range(self.config.MAX_WORK_ORDERS):
                     self.workorder_ids[i][j] = random.randrange(self.config.SIZE)
                     self.workorder_aircraftregs[i][j] = self.aircraft_registrations[i]
@@ -297,64 +319,34 @@ class AircraftGenerator:
                     self.workorder_reportingdate[i][j] = self.workorder_duedates[i][j] + _mel_mapping.get(
                         self.workorder_mels[i][j], dt.timedelta(days=-5)
                     )
+            else:
+                # if no maintenance and no delays
+                # construct flight
+                flight_pair = Flight(
+                    config=self.config,
+                    scheduled_departure=self.scheduled_departures[i],
+                    aircraft_registration=self.aircraft_registrations[i],
+                )
 
-            # if no maintenance and no delays
-            # construct flight
-            flight_pair = Flight(
-                config=self.config,
-                scheduled_departure=self.scheduled_departures[i],
-                aircraft_registration=self.aircraft_registrations[i],
-            )
+                # TODO: don't know why is this necessary
+                self.origin_dest[i] = flight_pair
+                self.pair_number_mapping = {}
+                self.pair_number_mapping[str(flight_pair)] = flight_pair.flight_number
 
-            # TODO: don't know why is this necessary
-            self.origin_dest[i] = flight_pair
-            self.pair_number_mapping = {}
-            self.pair_number_mapping[str(flight_pair)] = flight_pair.flight_number
-
-            self.passengers[i] = flight_pair.passengers
-            self.cabin_crew[i] = flight_pair.cabin_crew
-            self.flight_crew[i] = flight_pair.flight_crew
-            self.flight_ids[i] = flight_pair.flight_id
+                self.passengers[i] = flight_pair.passengers
+                self.cabin_crew[i] = flight_pair.cabin_crew
+                self.flight_crew[i] = flight_pair.flight_crew
+                self.flight_ids[i] = flight_pair.flight_id
 
         return self
 
-    #                 /////////////////////////
-    #                 //if flight
-    #                 //if (!slotKinds[i].equalsIgnoreCase("Flight")) continue;
-
-    #                 String origin = airportCodes[r.nextInt(airportCodes.length)];
-    #                 String dest = airportCodes[r.nextInt(airportCodes.length)];
-    #                 while (origin.equalsIgnoreCase(dest)) {
-    #                     dest = airportCodes[r.nextInt(airportCodes.length)];
-    #                 }
-    #                 originDest[i] = new Pair(origin, dest);
-    #                 if (!orgDestToFlightNo.containsKey(origin + "-" + dest)) {
-    #                     String flightNo = digits.charAt(r.nextInt(10)) + "" + digits.charAt(r.nextInt(10)) + digits.charAt(r.nextInt(10)) + digits.charAt(r.nextInt(10));
-    #                     orgDestToFlightNo.put(origin + "-" + dest, flightNo);
-    #                 }
-
-    #                 passengers[i] = r.nextInt((MAX_PAS - MIN_PAS) + 1) + MIN_PAS;
-    #                 cabinCrew[i] = r.nextInt((MAX_CCREW - MIN_CCREW) + 1) + MIN_CCREW;
-    #                 flightCrew[i] = r.nextInt((MAX_FCREW - MIN_FCREW) + 1) + MIN_FCREW;
-
-    #                 String day = (scheduledDepartures[i].getDate() < 10) ? "0" + scheduledDepartures[i].getDate() : "" + scheduledDepartures[i].getDate();
-    #                 String month = (1 + scheduledDepartures[i].getMonth() < 10) ? "0" + (1 + scheduledDepartures[i].getMonth()) : "" + (1 + scheduledDepartures[i].getMonth());
-    #                 String year = ((1900 + scheduledDepartures[i].getYear()) + "").substring(2, 4);
-
-    #                 //System.out.println("timestamp: "+scheduledDepartures[i]);
-    #                 //System.out.println("date1: "+scheduledDepartures[i].getDate()+" "+scheduledDepartures[i].getMonth()+" "+scheduledDepartures[i].getYear());
-    #                 //System.out.println("date2: "+day+" "+month+" "+year);
-
-    #                 flightIDs[i] = day + month + year + "-" + originDest[i].first + "-" + originDest[i].second + "-" + orgDestToFlightNo.get(originDest[i].toString()) + "-" + aircraftRegs[i];
-    #                 //flightIDs[i] =  scheduledDepartures[i] + "-" + originDest[i].first + "-" + originDest[i].second + "-" + orgDestToFlightNo.get(originDest[i].toString()) + "-" + aircraftRegs[i];
-
-    #             }
-
     def populate(self):
+        # TODO: refactor this
+        self.preallocate_arrays()
         self.create_fleet()
         self.create_aircraft_registrations()
         self.create_timestamps()
-        self.rest()
+        self.populate_flights_maintenances()
         return self
 
     def get_flights(self, output: Path = None) -> T.Generator:
@@ -392,6 +384,91 @@ class AircraftGenerator:
             for i in range(self.config.SIZE)
         )
         return output_maintenances
+
+    def get_operational_interruptions(self) -> T.Generator:
+        # Data is already loaded in self
+        # we will deal in generators to avoid processing
+        # everything in memory. 
+
+        out = ([
+                    self.maintenance_id[i], # 0
+                    self.aircraft_registrations[i], # 1
+                    self.airport_maintenance[i], # 2
+                    self.subsystem[i], # 3
+                    self.starttimes[i], # 4
+                    self.durations[i], # 5
+                    self.maintenance_kinds[i], # 6
+                    self.flight_ids[i], # 7
+                    self.departure[i], # 8
+                    self.delay_codes[i], # 9
+                    # following are needed just to produce the output
+                ] for i in range(self.config.SIZE))
+        return out
+
+    def get_attachments(self) -> T.Generator:
+        
+        return ([self.attachment_files[i][j], self.attachment_events[i][j]] 
+                    for i in range(self.config.SIZE)
+                    for j in range(self.config.MAX_ATTCH_SIZE))
+
+    def get_workpackages(self) -> T.Generator:
+
+        workpackages = ([
+            self.work_package_ids[i],
+            self.execution_dates[i],
+            self.execution_places[i]] 
+            for i in range(self.config.SIZE) 
+            if self.slots_kinds[i] == "Maintenance" 
+            or self.delays[i] > 0)
+        
+        return workpackages
+
+    def get_forecasted_orders(self) -> T.Generator:
+    
+        forecasted_orders = ([
+            self.workorder_ids[i][j],
+            self.workorder_aircraftregs[i][j],
+            self.workorder_executiondates[i][j],
+            self.workorder_executionplaces[i][j],
+            self.workorder_workpackageids[i][j],
+            self.workorder_workorderkinds[i][j],
+            self.workorder_deadlines[i][j],
+            self.workorder_planneddates[i][j],
+            self.workorder_frequencies[i][j],
+            self.workorder_frequencyunits[i][j],
+            self.workorder_forecastedmanhours[i][j],
+            ] 
+            for i in range(self.config.SIZE)
+            for j in range(self.config.MAX_ATTCH_SIZE)
+            if (self.slots_kinds[i] == "Maintenance" or self.delays[i] > 0) 
+            and self.workorder_workorderkinds[i] == "Forecast")
+        
+        return forecasted_orders
+
+    def get_tlb_orders(self, ) -> T.Generator:
+    
+        tlb_orders = ([
+            self.workorder_ids[i][j],
+            self.workorder_aircraftregs[i][j],
+            self.workorder_executiondates[i][j],
+            self.workorder_executionplaces[i][j],
+            self.workorder_workpackageids[i][j],
+            self.workorder_workorderkinds[i][j],
+            self.workorder_reporteurclasses[i][j],
+            self.workorder_reporteurids[i][j],
+            self.workorder_planneddates[i][j],
+            self.workorder_duedates[i][j],
+            self.workorder_deferreds[i][j],
+            self.workorder_mels[i][j],
+            self.workorder_reportingdate[i][j]
+            ]
+            for i in range(self.config.SIZE)
+            for j in range(self.config.MAX_ATTCH_SIZE)
+            if (self.slots_kinds[i] == "Maintenance" or self.delays[i] > 0) 
+            and self.workorder_workorderkinds[i] == "TechnicalLogBook")
+        
+        return tlb_orders
+
 
 class Flight(object):
     def __init__(self, config: Config, scheduled_departure: datetime, aircraft_registration: str):
@@ -432,5 +509,5 @@ if __name__ == "__main__":
 
     g = AircraftGenerator(config=Config)
     g.populate()
-    logging.debug(g.flight_ids)
-
+    g.get_operational_interruptions()
+    print("done")
