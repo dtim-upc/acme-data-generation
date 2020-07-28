@@ -20,3 +20,6 @@ coverage: ## Run tests with pytest and coverage
 
 memprofile.generate: ## Run memory profile with FIL
 	fil-profile run project/scripts/generate.py
+
+business-rules: ## Convert markdown to pdf (just because I am lazy)
+	pandoc -s docs/business_rules.md -o docs/business_rules.pdf --template eisvogel
