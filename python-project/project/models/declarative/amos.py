@@ -3,7 +3,7 @@
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import INTERVAL, UUID
-from project.models.mixins import ReprMixin, GhostIdMixin
+from project.models.declarative.mixins import ReprMixin, GhostIdMixin
 
 
 __doc__ = """Classes used to populate the AMOS schema. 

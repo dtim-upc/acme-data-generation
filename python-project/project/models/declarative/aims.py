@@ -3,7 +3,7 @@ import typing as T
 
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
-from project.models.mixins import ReprMixin, GhostIdMixin
+from project.models.declarative.mixins import ReprMixin, GhostIdMixin
 
 
 Base = declarative_base()
