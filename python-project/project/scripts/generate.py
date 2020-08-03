@@ -9,6 +9,7 @@ from uuid import UUID
 from faker import Faker
 
 from project.scripts.config import Config
+from project.scripts.rules import mapping
 
 fake = Faker()
 
@@ -80,16 +81,19 @@ class AircraftGenerator:
 
             self.cancelled[i] = fake.pybool()
 
+            # if it was cancelled, reflect that
             if self.cancelled[i]:
                 self.delays[i] = 0
                 self.delay_codes[i] = None
                 self.actual_arrivals[i] = None
                 self.actual_departures[i] = None
-            else:  # if flight was not self.cancelled, then set self.delays, if any
-                # define a random delay in minutes
-                self.delays[i]: int = random.randrange(0, self.config.MAX_DELAY)
+            else:  
+                # if flight was not cancelled, then set delays, if any
+                self.delays[i]: int = random.randrange(0, self.config.MAX_DELAY) # define a random delay in minutes
 
                 # if delay ocurred, determine reason
+                # if there are delays, then this flight goes to operational interruptions
+                # TODO: this is rule R7
                 if self.delays[i] > 0:
                     self.delay_codes[i] = random.choice(self.config.DELAYCODESOPTIONS)
                 else:
@@ -208,8 +212,9 @@ class AircraftGenerator:
             if self.slots_kinds[i] == "Maintenance" or self.delays[i] > 0:
 
                 self.programmed[i] = fake.pybool()  # AIMS.maintenance.programmed
-                # TODO: why 250? should this be a parameter
+                # TODO: this is rule R11
                 self.airport_maintenance[i] = random.choice(self.config.AIRPORTCODES)  #  AMOS.maintenanceevents.airport
+                # TODO: this is rule R6
                 self.subsystem[i] = random.choice(self.config.ATACODES)  # AMOS.maintenanceevents.subsystem
                 self.starttimes[i] = self.scheduled_departures[i]  # AMOS.maintenanceevents.starttimes
                 self.maintenance_kinds[i] = random.choice(
@@ -244,6 +249,8 @@ class AircraftGenerator:
                     hours=self.hours[i] or 0, 
                     minutes=self.minutes[i] or 0)
 
+                # TODO: This is rule R3
+                # TODO: resolve the line in Java: maintenanceID[i] = r.nextInt(SIZE - 250); // AMOS.maintenanceevents.maintenanceid
                 self.maintenance_id[i] = "_".join([
                         str(random.randrange(self.config.SIZE)),
                         str(self.starttimes[i] + self.durations[i])]) # AMOS.maintenanceevents.maintenanceid
@@ -259,6 +266,7 @@ class AircraftGenerator:
 
                 # AMOS.attachments
                 for j in range(self.config.MAX_ATTCH_SIZE):
+                    # TODO: this is rule R4: 
                     self.attachment_files[i][j] = fake.uuid4()
                     # TODO: this is rule R5: 
                     # event of an Attachement is a reference to maintenanceID of MaintenanceEvents 
@@ -266,12 +274,14 @@ class AircraftGenerator:
                     self.attachment_events[i][j] = self.maintenance_id[i] 
 
                 # AMOS.workpackages
+                # TODO: Implement rule R1
                 self.work_package_ids[i] = random.randrange(self.config.SIZE)  # AMOS.workpackages.workpackageid
                 self.execution_dates[i] = self.departure[i]  # AMOS.workpackages.executiondate
                 self.execution_places[i] = self.airport_maintenance[i]  # AMOS.workpackages.executionplace
 
                 # AMOS.workorders
                 for j in range(self.config.MAX_WORK_ORDERS):
+                    # TODO: Implement rule R2
                     self.workorder_ids[i][j] = random.randrange(self.config.SIZE)
                     self.workorder_aircraftregs[i][j] = self.aircraft_registrations[i]
                     self.workorder_executiondates[i][j] = self.departure[i]
@@ -307,7 +317,9 @@ class AircraftGenerator:
                     self.workorder_duedates[i][j] = self.workorder_deadlines[i][j]
 
                     self.workorder_deferreds[i][j] = fake.pybool()
-                    self.workorder_mels[i][j] = random.choice(self.config.MELCATHEGORYOPTIONS)
+
+                    # TODO: this is rule R10    
+                    self.workorder_mels[i][j] = random.choice(self.config.MELCATEGORYOPTIONS)
 
                     _mel_mapping = {
                         "A": dt.timedelta(days=-3),
@@ -316,6 +328,7 @@ class AircraftGenerator:
                         "D": dt.timedelta(days=-120),
                     }
 
+                    # TODO: confirm why this has a default of -5 days
                     self.workorder_reportingdate[i][j] = self.workorder_duedates[i][j] + _mel_mapping.get(
                         self.workorder_mels[i][j], dt.timedelta(days=-5)
                     )
@@ -356,7 +369,7 @@ class AircraftGenerator:
                 self.scheduled_departures[i],
                 self.scheduled_arrivals[i],
                 self.slots_kinds[i],
-                self.flight_ids[i],
+                self.flight_ids[i], # TODO: this is rule R13-A
                 self.origin_dest[i].orig,
                 self.origin_dest[i].dest,
                 self.actual_departures[i],
@@ -388,7 +401,7 @@ class AircraftGenerator:
     def get_operational_interruptions(self) -> T.Generator:
         # Data is already loaded in self
         # we will deal in generators to avoid processing
-        # everything in memory. 
+        # everything in memory.
 
         out = ([
                     self.maintenance_id[i], # 0
@@ -398,7 +411,8 @@ class AircraftGenerator:
                     self.starttimes[i], # 4
                     self.durations[i], # 5
                     self.maintenance_kinds[i], # 6
-                    self.flight_ids[i], # 7
+                    # TODO: rule R13-B
+                    self.flight_ids[i], # 7 
                     self.departure[i], # 8
                     self.delay_codes[i], # 9
                     # following are needed just to produce the output
@@ -487,6 +501,8 @@ class Flight(object):
         # stfrtime uses here the format that was in the java code.
         # This date is not ISO 8601 compliant, but it could be set
         # as a config parameter later, I guess
+
+        # TODO: this is rule R12
         self.flight_id: str = "-".join(
             [
                 self.scheduled_departure.strftime("%d-%m-%Y"),
