@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Engine
 
 from project.models.classic import aims_meta, amos_meta
-from project.models import AIMSBase, AMOSBase
+from project.models.declarative import AIMSBase, AMOSBase
 
 
 def delete_all(engine: Engine):
