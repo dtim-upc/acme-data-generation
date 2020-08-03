@@ -2,6 +2,7 @@ import typing as T
 from datetime import datetime
 from faker.providers import BaseProvider
 from faker.providers import date_time
+from faker import Faker
 
 
 class AirportProvider(BaseProvider):
@@ -1007,10 +1008,17 @@ class AirportProvider(BaseProvider):
             self.offset_timestamp, self.end_timestamp
         )
 
-    def fleet_name(self) -> str:
+    def aircraft_registration_code(self) -> str:
         return self.register_prefix + self.lexify(
             text=f"???", letters=self.alphabet
         )
 
-    def msn(self) -> str:
+    def fleet(self, size: int) -> T.List[str]:
+        return [self.aircraft_registration_code() for _ in range(size)]
+
+    def manufacturer_serial_number(self) -> str:
         return self.numerify(text="MSN %%%%")
+
+
+fake = Faker()
+fake.add_provider(AirportProvider)
