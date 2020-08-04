@@ -1,13 +1,16 @@
 import typing as T
-from datetime import datetime
-from faker.providers import BaseProvider
-from faker.providers import date_time
+from datetime import datetime, timedelta
+
 from faker import Faker
+from faker.providers import BaseProvider, date_time
+
+from project.models.data import aims, amos
+from project.models.data.serializable import Manufacturer, Reporter
 
 
 class AirportProvider(BaseProvider):
 
-    airport_codes: T.List[str] = [
+    _airport_codes: T.List[str] = [
         "TIA",
         "EVN",
         "GRZ",
@@ -269,19 +272,19 @@ class AirportProvider(BaseProvider):
         "SOU",
     ]
 
-    register_prefix: str = "XY-"
-    alphabet: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    digits: str = "0123456789"
+    _register_prefix: str = "XY-"
+    _alphabet: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    _digits: str = "0123456789"
 
-    offset_timestamp: datetime = datetime.strptime(
+    _offset_timestamp: datetime = datetime.strptime(
         "2010-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"
     )
 
-    end_timestamp: datetime = datetime.strptime(
+    _end_timestamp: datetime = datetime.strptime(
         "2017-01-07 00:00:00", "%Y-%m-%d %H:%M:%S"
     )
 
-    delay_codes: T.List[str] = [
+    _delay_codes: T.List[str] = [
         "00",
         "01",
         "02",
@@ -368,9 +371,9 @@ class AirportProvider(BaseProvider):
         "99",
     ]
 
-    slot_kinds: T.List[str] = ["Flight", "Maintenance"]
+    _slot_kinds: T.List[str] = ["Flight", "Maintenance"]
 
-    maintenance_event_kinds: T.List[str] = [
+    _maintenance_event_kinds: T.List[str] = [
         "Delay",
         "Safety",
         "AircraftOnGround",
@@ -378,7 +381,7 @@ class AirportProvider(BaseProvider):
         "Revision",
     ]
 
-    ata_codes: T.List[str] = [
+    _ata_codes: T.List[str] = [
         "1100",
         "1210",
         "1220",
@@ -928,11 +931,11 @@ class AirportProvider(BaseProvider):
         "8597",
     ]
 
-    work_order_kinds: T.List[str] = ["Forecast", "TechnicalLogBook"]
-    frequency_units_kinds: T.List[str] = ["Flights", "Days", "Miles"]
-    mel_category_kinds: T.List[str] = ["A", "B", "C", "D"]
-    report_kinds: T.List[str] = ["PIREP", "MAREP"]
-    aircraft_models: T.List[str] = [
+    _work_order_kinds: T.List[str] = ["Forecast", "TechnicalLogBook"]
+    _frequency_units_kinds: T.List[str] = ["Flights", "Days", "Miles"]
+    _mel_category_kinds: T.List[str] = ["A", "B", "C", "D"]
+    _report_kinds: T.List[str] = ["PIREP", "MAREP"]
+    _aircraft_models: T.List[str] = [
         "A319",
         "A320 family",
         "A320neo family",
@@ -947,46 +950,46 @@ class AirportProvider(BaseProvider):
         "777",
     ]
 
-    aircraft_manufacturers: T.List[str] = [
+    _aircraft_manufacturers: T.List[str] = [
         "Airbus",
         "Boeing",
     ]
 
     def airport_code(self) -> str:
-        return self.random_element(self.airport_codes)
+        return self.random_element(self._airport_codes)
 
     def delay_code(self) -> str:
-        return self.random_element(self.delay_codes)
+        return self.random_element(self._delay_codes)
 
     def slot_kind(self) -> str:
-        return self.random_element(self.slot_kinds)
+        return self.random_element(self._slot_kinds)
 
     def maintenance_event_kind(self) -> str:
-        return self.random_element(self.maintenance_event_kinds)
+        return self.random_element(self._maintenance_event_kinds)
 
     def ata_code(self) -> str:
-        return self.random_element(self.ata_codes)
+        return self.random_element(self._ata_codes)
 
     def work_order_kind(self) -> str:
-        return self.random_element(self.work_order_kinds)
+        return self.random_element(self._work_order_kinds)
 
     def frequency_units_kind(self) -> str:
-        return self.random_element(self.frequency_units_kinds)
+        return self.random_element(self._frequency_units_kinds)
 
     def mel_category_kind(self) -> str:
-        return self.random_element(self.mel_category_kinds)
+        return self.random_element(self._mel_category_kinds)
 
     def report_kind(self) -> str:
-        return self.random_element(self.report_kinds)
+        return self.random_element(self._report_kinds)
 
     def aircraft_model(self) -> str:
-        return self.random_element(self.aircraft_models)
+        return self.random_element(self._aircraft_models)
 
     def aircraft_manufacturer(self) -> str:
-        return self.random_element(self.aircraft_manufacturers)
+        return self.random_element(self._aircraft_manufacturers)
 
     def flight_route(self) -> T.List[str]:
-        return self.random_elements(self.airport_codes, unique=True, length=2)
+        return self.random_elements(self._airport_codes, unique=True, length=2)
 
     def flight_number(self) -> str:
         """Returns a random flight number between 1000 and 9999
@@ -1005,12 +1008,12 @@ class AirportProvider(BaseProvider):
             datetime: a random datetime object
         """
         return self.generator.date_time_between_dates(
-            self.offset_timestamp, self.end_timestamp
+            self._offset_timestamp, self._end_timestamp
         )
 
     def aircraft_registration_code(self) -> str:
-        return self.register_prefix + self.lexify(
-            text=f"???", letters=self.alphabet
+        return self._register_prefix + self.lexify(
+            text=f"???", letters=self._alphabet
         )
 
     def fleet(self, size: int) -> T.List[str]:
@@ -1018,6 +1021,266 @@ class AirportProvider(BaseProvider):
 
     def manufacturer_serial_number(self) -> str:
         return self.numerify(text="MSN %%%%")
+
+    def maintenance_id(self, max_id: int = 999) -> str:
+        return "_".join(
+            [
+                str(self.random_int(max=max_id)),
+                str(self.flight_timestamp() + self.interruption_duration()),
+            ]
+        )
+
+    def duration(
+        self, max_days: int = 31, max_hours: int = 23, max_minutes: int = 59
+    ) -> timedelta:
+
+        return timedelta(
+            days=self.random_int(max=max_days),
+            hours=self.random_int(max=max_hours),
+            minutes=self.random_int(max=max_minutes),
+        )
+
+    def interruption_duration(
+        self,
+        interruption_type: T.Optional[str] = None,
+        return_type: bool = False,
+    ) -> T.Union[timedelta, T.Tuple[str, timedelta]]:
+        """Returns a time interval specific to some interruption type. 
+
+        If no type is provided, then an interruption type is randomly generated.
+
+        :return: A duration object or a tuple with the type and duration
+        :rtype: T.Union[timedelta, T.Tuple[str, timedelta]]
+        """
+        if interruption_type is None:
+            interruption_type = self.maintenance_event_kind()
+
+        # setup depending on the maintenance kind obtained
+        if interruption_type == "Delay":
+            duration = self.duration(max_minutes=60)
+        elif interruption_type == "Safety":
+            duration = self.duration(max_days=90, max_hours=24, max_minutes=60)
+        elif interruption_type == "AircraftOnGround":
+            duration = self.duration(max_hours=24, max_minutes=60)
+        elif interruption_type == "Maintenance":
+            duration = self.duration(max_days=1, max_hours=24, max_minutes=60)
+        elif interruption_type == "Revision":
+            duration = self.duration(max_days=31, max_hours=24, max_minutes=60)
+        else:
+            duration = timedelta()
+
+        if return_type:
+            return (interruption_type, duration)
+
+        return duration
+
+    def manufacturer(self) -> Manufacturer:
+        """Returns a random instance of Manufacturer
+
+        Returns:
+            Manufacturer: A random instance of Manufacturer
+        """
+        return Manufacturer(
+            aircraft_reg_code=self.aircraft_registration_code(),
+            manufacturer_serial_number=self.manufacturer_serial_number(),
+            aircraft_model=self.aircraft_model(),
+            aircraft_manufacturer=self.aircraft_manufacturer(),
+        )
+
+    def reporter(self) -> Reporter:
+        """Returns an instance of a Reporter with random attributes
+
+        :return: a Reporter instance
+        :rtype: Reporter
+        """
+
+        return Reporter(
+            reporteurid=self.random_int(), airport=self.airport_code(),
+        )
+
+    # amos random instances
+    def work_package(self) -> amos.Workpackage:
+
+        return amos.Workpackage(
+            workpackageid=self.random_int(),
+            executiondatetime=self.flight_timestamp(),
+            executionplace=self.airport_code(),
+        )
+
+    def attachment(self) -> amos.Attachment:
+        return amos.Attachment(
+            file=self.generator.uuid4(), event=self.maintenance_id()
+        )
+
+    def work_order(self, max_id: int = 9999) -> amos.WorkOrder:
+
+        order = amos.WorkOrder(
+            workorderid=self.random_int(max=max_id),
+            aircraftregistration=self.aircraft_registration_code(),
+            executiondatetime=self.flight_timestamp(),
+            executionplace=self.airport_code(),
+            workpackage=self.work_package().workpackageid,
+            kind=self.maintenance_event_kind(),
+        )
+
+        return order
+
+    def forecasted_order(self, max_id: int = 9999) -> amos.ForecastedOrder:
+
+        planned = self.flight_timestamp()
+        deadline = planned + self.interruption_duration()
+
+        order = amos.ForecastedOrder(
+            workorderid=self.random_int(max=max_id),
+            aircraftregistration=self.aircraft_registration_code(),
+            executiondatetime=self.flight_timestamp(),
+            executionplace=self.airport_code(),
+            workpackage=self.work_package().workpackageid,
+            kind=self.maintenance_event_kind(),
+            deadline=deadline,
+            planned=planned,
+            frequency=self.random_int(max=100),
+            frequencyunits=self.frequency_units_kind(),
+            forecastedmanhours=self.random_int(max=20),
+        )
+
+        return order
+
+    def technical_logbook_order(
+        self, max_id: int = 9999
+    ) -> amos.TechnicalLogbookOrder:
+
+        planned = self.flight_timestamp()
+        deadline = planned + self.interruption_duration()
+
+        order = amos.TechnicalLogbookOrder(
+            workorderid=self.random_int(max=max_id),
+            aircraftregistration=self.aircraft_registration_code(),
+            executiondatetime=self.flight_timestamp(),
+            executionplace=self.airport_code(),
+            workpackage=self.work_package().workpackageid,
+            kind=self.maintenance_event_kind(),
+            reporteurclass=self.report_kind(),
+            reporteurid=self.reporter().reporteurid,
+            reportingdatetime=planned,
+            due=deadline,
+            deferred=self.generator.pybool(),
+            mel=self.mel_category_kind(),
+        )
+
+        return order
+
+    def operational_interruption(self) -> amos.OperationInterruption:
+
+        starttime = self.flight_timestamp()
+        duration = self.interruption_duration(interruption_type="Maintenance")
+
+        return amos.OperationInterruption(
+            maintenanceid=self.maintenance_id(),
+            aircraftregistration=self.aircraft_registration_code(),
+            airport=self.airport_code(),
+            subsystem=self.ata_code(),
+            starttime=self.flight_timestamp(),
+            duration=duration,
+            kind="Maintenance",
+            flightid=self.flight_id(),
+            departure=starttime + duration,
+            delaycode=self.delay_code(),
+        )
+
+    def flight_id(self) -> str:
+        return self.flight_slot().flightid
+
+    def flight_slot(self, config=None) -> aims.FlightSlot:
+
+        # TODO: remove these defaults and expose them at a higher level
+        config = {}
+        max_duration: int = config.get("max_duration", 5)
+        max_pas: int = config.get("max_pas", 180)
+        min_pas: int = config.get("min_pas", 90)
+        max_ccrew: int = config.get("max_ccrew", 4)
+        min_ccrew: int = config.get("min_ccrew", 3)
+        max_fcrew: int = config.get("max_fcrew", 3)
+        min_fcrew: int = config.get("min_fcrew", 2)
+
+        route: T.List[str] = self.flight_route()
+        orig: str = route[0]
+        dest: str = route[1]
+
+        flight_number: str = self.flight_number()
+        passengers: int = self.random_int(min=min_pas, max=max_pas)
+        cabin_crew: int = self.random_int(min=min_ccrew, max=max_ccrew)
+        flight_crew: int = self.random_int(min=min_fcrew, max=max_fcrew)
+        scheduled_departure: datetime = self.flight_timestamp()
+        scheduled_arrival: datetime = scheduled_departure + self.duration(
+            max_minutes=max_duration
+        )
+        aircraft_registration: str = self.aircraft_registration_code()
+        cancelled = self.generator.pybool()
+
+        # if flight is cancelled, then some attributes must be empty
+        if cancelled:
+            delay = 0
+            delay_code = None
+            actual_arrival = None
+            actual_departure = None
+        else:
+            delay = self.interruption_duration(interruption_type="Delay")
+            delay_code = self.delay_code()
+            actual_departure = scheduled_departure + delay
+            actual_arrival = scheduled_arrival + delay
+
+        # stfrtime uses here the format that was in the java code.
+        # This date is not ISO 8601 compliant, but it could be set
+        # as a config parameter later, I guess
+
+        # TODO: this is rule R12
+        flight_id: str = "-".join(
+            [
+                scheduled_departure.strftime("%d-%m-%Y"),
+                orig,
+                dest,
+                flight_number,
+                aircraft_registration,
+            ]
+        )
+
+        return aims.FlightSlot(
+            aircraftregistration=aircraft_registration,
+            scheduleddeparture=scheduled_departure,
+            scheduledarrival=scheduled_arrival,
+            kind="Flight",
+            flightid=flight_id,
+            departureairport=orig,
+            arrivalairport=dest,
+            actualdeparture=actual_departure,
+            actualarrival=actual_arrival,
+            cancelled=cancelled,
+            delaycode=delay_code,
+            passengers=passengers,
+            cabincrew=cabin_crew,
+            flightcrew=flight_crew,
+        )
+
+    def maintenance_slot(self, config=None) -> aims.MaintenanceSlot:
+
+        # TODO: remove these defaults and expose them at a higher level
+        config = {}
+        max_duration: int = config.get("max_duration", 5)
+
+        aircraft_registration: str = self.aircraft_registration_code()
+        scheduled_departure: datetime = self.flight_timestamp()
+        scheduled_arrival: datetime = scheduled_departure + self.duration(
+            max_minutes=max_duration
+        )
+
+        return aims.MaintenanceSlot(
+            aircraftregistration=aircraft_registration,
+            scheduleddeparture=scheduled_departure,
+            scheduledarrival=scheduled_arrival,
+            kind="Maintenance",
+            programmed=self.generator.pybool(),
+        )
 
 
 fake = Faker()

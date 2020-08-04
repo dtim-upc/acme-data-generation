@@ -1,18 +1,17 @@
-from pydantic import BaseModel
-from project.providers import fake
+import typing as T
+import attr
+
+# fmt: on
+@attr.s(auto_attribs=True)
+class Manufacturer(object):
+    aircraft_reg_code: T.Optional[str]
+    manufacturer_serial_number: T.Optional[str]
+    aircraft_model: T.Optional[str]
+    aircraft_manufacturer: T.Optional[str]
 
 
+@attr.s(auto_attribs=True)
+class Reporter(object):
+    reporteurid: T.Optional[str]
+    airport: T.Optional[str]
 
-class Manufacturer(BaseModel):
-    aircraft_reg_code: str
-    manufacturer_serial_number: str
-    aircraft_model: str
-    manufacturer: str
-
-
-class Reporter(BaseModel):
-    reporteurid: str
-    airport: str
-
-if __name__ == "__main__":
-    print(fake.fleet(10))

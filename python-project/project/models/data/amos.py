@@ -1,58 +1,64 @@
 import typing as T
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+import attr
 
 
-class Workpackage(BaseModel):
-    workpackageid: int
-    executiondatetime: datetime
-    executionplace: str
+@attr.s(auto_attribs=True)
+class Workpackage(object):
+    workpackageid: T.Optional[int]
+    executiondatetime: T.Optional[datetime]
+    executionplace: T.Optional[str]
 
 
-class Attachment(BaseModel):
-    file: str
-    event: str
+@attr.s(auto_attribs=True)
+class Attachment(object):
+    file: T.Optional[str]
+    event: T.Optional[str]
 
 
-class WorkOrder(BaseModel):
-    workorderid: int
-    aircraftregistration: str
-    executiondatetime: datetime
-    executionplace: str
-    workpackage: int
-    kind: T.Tuple[str]
+@attr.s(auto_attribs=True)
+class WorkOrder(object):
+    workorderid: T.Optional[int]
+    aircraftregistration: T.Optional[str]
+    executiondatetime: T.Optional[datetime]
+    executionplace: T.Optional[str]
+    workpackage: T.Optional[int]
+    kind: T.Optional[str]
 
 
+@attr.s(auto_attribs=True)
 class ForecastedOrder(WorkOrder):
-    deadline: datetime
-    planned: datetime
-    frequency: int
-    frequencyunits: T.Tuple[str]
-    forecastedmanhours: int
+    deadline: T.Optional[datetime]
+    planned: T.Optional[datetime]
+    frequency: T.Optional[int]
+    frequencyunits: T.Optional[str]
+    forecastedmanhours: T.Optional[int]
 
 
+@attr.s(auto_attribs=True)
 class TechnicalLogbookOrder(WorkOrder):
-    reporteurclass: T.Tuple[str]
-    reporteurid: int
-    reportingdatetime: datetime
-    due: datetime
-    deferred: bool
-    mel: T.Tuple[str]
+    reporteurclass: T.Optional[str]
+    reporteurid: T.Optional[int]
+    reportingdatetime: T.Optional[datetime]
+    due: T.Optional[datetime]
+    deferred: T.Optional[bool]
+    mel: T.Optional[str]
 
 
-class MaintenanceEvent(BaseModel):
+@attr.s(auto_attribs=True)
+class MaintenanceEvent(object):
+    maintenanceid: T.Optional[str]
+    aircraftregistration: T.Optional[str]
+    airport: T.Optional[str]
+    subsystem: T.Optional[str]
+    starttime: T.Optional[datetime]
+    duration: T.Optional[timedelta]
+    kind: T.Optional[str]
 
-    maintenanceid: str
-    aircraftregistration: str
-    airport: str
-    subsystem: str
-    starttime: datetime
-    duration: timedelta
-    kind: T.Tuple[str]
 
-
+@attr.s(auto_attribs=True)
 class OperationInterruption(MaintenanceEvent):
-    flightid: str
-    departure: datetime
-    delaycode: str
+    flightid: T.Optional[str]
+    departure: T.Optional[datetime]
+    delaycode: T.Optional[str]
 
