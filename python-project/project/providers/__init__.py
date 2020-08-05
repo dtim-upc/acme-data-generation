@@ -1,4 +1,5 @@
 import typing as T
+from collections import OrderedDict
 from datetime import datetime, timedelta
 
 from faker import Faker
@@ -1023,6 +1024,7 @@ class AirportProvider(BaseProvider):
         return self.numerify(text="MSN %%%%")
 
     def maintenance_id(self, max_id: int = 999) -> str:
+        # TODO: This is rule R3
         return "_".join(
             [
                 str(self.random_int(max=max_id)),
@@ -1057,15 +1059,18 @@ class AirportProvider(BaseProvider):
 
         # setup depending on the maintenance kind obtained
         if interruption_type == "Delay":
-            duration = self.duration(max_minutes=60)
+            duration = self.duration(max_minutes=59)
         elif interruption_type == "Safety":
-            duration = self.duration(max_days=90, max_hours=24, max_minutes=60)
+            duration = self.duration(max_days=89, max_hours=23, max_minutes=59)
         elif interruption_type == "AircraftOnGround":
-            duration = self.duration(max_hours=24, max_minutes=60)
+            duration = self.duration(max_hours=23, max_minutes=59)
         elif interruption_type == "Maintenance":
-            duration = self.duration(max_days=1, max_hours=24, max_minutes=60)
+            duration = self.duration(max_days=1, max_hours=23, max_minutes=59)
+            # TODO: this is rule R15-D
+            if duration > timedelta(days=1):
+                duration = timedelta(days=1)
         elif interruption_type == "Revision":
-            duration = self.duration(max_days=31, max_hours=24, max_minutes=60)
+            duration = self.duration(max_days=31, max_hours=23, max_minutes=59)
         else:
             duration = timedelta()
 
@@ -1073,6 +1078,26 @@ class AirportProvider(BaseProvider):
             return (interruption_type, duration)
 
         return duration
+
+    def reporting_deadline_duration(
+        self, mel_type: T.Optional[str] = None, return_type: bool = False
+    ) -> T.Union[timedelta, T.Tuple[str, timedelta]]:
+
+        if mel_type is None:
+            mel_type = self.mel_category_kind()
+
+        _mel_mapping = {
+                        "A": timedelta(days=-3),
+                        "B": timedelta(days=-10),
+                        "C": timedelta(days=-30),
+                        "D": timedelta(days=-120),
+                    }
+
+        return _mel_mapping.get(mel_type, timedelta(days=-5))
+
+    # ---------------------------------------------------------------------------- #
+    #                                    to csv                                    #
+    # ---------------------------------------------------------------------------- #
 
     def manufacturer(self) -> Manufacturer:
         """Returns a random instance of Manufacturer
@@ -1098,7 +1123,10 @@ class AirportProvider(BaseProvider):
             reporteurid=self.random_int(), airport=self.airport_code(),
         )
 
-    # amos random instances
+    # ---------------------------------------------------------------------------- #
+    #                                     AMOS                                     #
+    # ---------------------------------------------------------------------------- #
+
     def work_package(self) -> amos.Workpackage:
 
         return amos.Workpackage(
@@ -1109,7 +1137,8 @@ class AirportProvider(BaseProvider):
 
     def attachment(self) -> amos.Attachment:
         return amos.Attachment(
-            file=self.generator.uuid4(), event=self.maintenance_id()
+            file=self.generator.uuid4(),  # TODO: this is rule R4
+            event=self.maintenance_id(),
         )
 
     def work_order(self, max_id: int = 9999) -> amos.WorkOrder:
@@ -1150,8 +1179,12 @@ class AirportProvider(BaseProvider):
         self, max_id: int = 9999
     ) -> amos.TechnicalLogbookOrder:
 
+        # R10: MELCathegory values A,B,C,D refer to 3,10,30,120 days of allowed delay in the
+        # repairing of the problem in the aircraft, respectively.
+
+        mel = self.mel_category_kind()
         planned = self.flight_timestamp()
-        deadline = planned + self.interruption_duration()
+        deadline = planned + self.reporting_deadline_duration(mel_type=mel)
 
         order = amos.TechnicalLogbookOrder(
             workorderid=self.random_int(max=max_id),
@@ -1165,15 +1198,16 @@ class AirportProvider(BaseProvider):
             reportingdatetime=planned,
             due=deadline,
             deferred=self.generator.pybool(),
-            mel=self.mel_category_kind(),
+            mel=mel,
         )
 
         return order
 
-    def operational_interruption(self) -> amos.OperationInterruption:
+    def operational_interruption_event(self) -> amos.OperationInterruption:
 
         starttime = self.flight_timestamp()
-        duration = self.interruption_duration(interruption_type="Maintenance")
+        kind = self.maintenance_event_kind()
+        duration = self.interruption_duration(interruption_type=kind)
 
         return amos.OperationInterruption(
             maintenanceid=self.maintenance_id(),
@@ -1182,19 +1216,24 @@ class AirportProvider(BaseProvider):
             subsystem=self.ata_code(),
             starttime=self.flight_timestamp(),
             duration=duration,
-            kind="Maintenance",
+            kind=kind,
             flightid=self.flight_id(),
             departure=starttime + duration,
             delaycode=self.delay_code(),
         )
 
+    # ---------------------------------------------------------------------------- #
+    #                                     AIMS                                     #
+    # ---------------------------------------------------------------------------- #
+
     def flight_id(self) -> str:
         return self.flight_slot().flightid
 
-    def flight_slot(self, config=None) -> aims.FlightSlot:
+    def flight_slot(
+        self, cancelled: T.Optional[bool] = None, config: T.Optional[T.Any] = {}
+    ) -> aims.FlightSlot:
 
         # TODO: remove these defaults and expose them at a higher level
-        config = {}
         max_duration: int = config.get("max_duration", 5)
         max_pas: int = config.get("max_pas", 180)
         min_pas: int = config.get("min_pas", 90)
@@ -1216,7 +1255,9 @@ class AirportProvider(BaseProvider):
             max_minutes=max_duration
         )
         aircraft_registration: str = self.aircraft_registration_code()
-        cancelled = self.generator.pybool()
+
+        if cancelled is None:
+            cancelled = self.generator.pybool()
 
         # if flight is cancelled, then some attributes must be empty
         if cancelled:
@@ -1282,6 +1323,46 @@ class AirportProvider(BaseProvider):
             programmed=self.generator.pybool(),
         )
 
+    def any_slot(
+        self, prob_flight_slot: float = 0.5
+    ) -> T.Union[aims.FlightSlot, aims.MaintenanceSlot]:
+        """returns an instance of FlightSlot or MaintenanceSlot using weighted probabilities
+
+        :param prob_flight_slot: probability of returning a FlightSlot instance, defaults to 0.5
+        :type prob_flight_slot: float, optional
+        :raises ValueError: If probability is outside of range
+        :return: a FlightSlot or MaintenanceSlot instance at random
+        :rtype: T.Union[aims.FlightSlot, aims.MaintenanceSlot]
+        """
+
+        if 1 < prob_flight_slot < 0:
+            raise ValueError("prob_flight_slot must be a float in range [0,1]")
+
+        prob_maintenance_slot = 1 - prob_flight_slot
+
+        # https://faker.readthedocs.io/en/master/providers/baseprovider.html#faker.providers.BaseProvider.random_elements
+        selection = self.random_elements(
+            elements=OrderedDict(
+                [
+                    (self.flight_slot, prob_flight_slot,),
+                    (self.maintenance_slot, prob_maintenance_slot,),
+                ]
+            ),
+            unique=False,
+        )[
+            0
+        ]  # random elements returns a list
+
+        return selection()
+
 
 fake = Faker()
 fake.add_provider(AirportProvider)
+
+if __name__ == "__main__":
+
+    print(fake.fleet(10))
+    print(fake.reporter())
+    print(fake.manufacturer())
+    # print(fake.duration())
+    print(fake.forecasted_order())
