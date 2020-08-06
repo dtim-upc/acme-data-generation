@@ -1,8 +1,18 @@
 from datetime import datetime
 import typing as T
+import attr
 
 
-class Config(object):
+@attr.s(auto_attribs=True)
+class Config:
+    """A configuration class to control the generation process"""
+
+    def validate(self):
+        if not (0 < self.PROB_TLB < 1):
+            raise ValueError("probability must be a float in range [0,1]")
+
+        if not (0 < self.PROB_FLIGHT_SLOT < 1):
+            raise ValueError("probability must be a float in range [0,1]")
 
     SEED: int = 42
 
@@ -23,6 +33,9 @@ class Config(object):
     FLEET_SIZE: int = 20
 
     REGPREFIX: str = "XY-"
+
+    PROB_FLIGHT_SLOT = 0.4
+    PROB_TLB = 0.5
 
     AIRPORTCODES: T.List[str] = [
         "TIA",
@@ -373,9 +386,13 @@ class Config(object):
         "99",
     ]
 
-    # maximum 
-    OFFSET: datetime = datetime.strptime("2010-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
-    END: datetime = datetime.strptime("2017-01-07 00:00:00", "%Y-%m-%d %H:%M:%S")
+    # maximum
+    OFFSET: datetime = datetime.strptime(
+        "2010-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"
+    )
+    END: datetime = datetime.strptime(
+        "2017-01-07 00:00:00", "%Y-%m-%d %H:%M:%S"
+    )
 
     SLOTKINDOPTIONS: T.List[str] = ["Flight", "Maintenance"]
 
@@ -937,9 +954,8 @@ class Config(object):
         "8597",
     ]
     WORKORDERKINDOPTIONS: T.List[str] = ["Forecast", "TechnicalLogBook"]
-
     FREQUENCYUNITSKINDOPTIONS: T.List[str] = ["Flights", "Days", "Miles"]
-    MELCATHEGORYOPTIONS: T.List[str] = ["A", "B", "C", "D"]
+    MELCATEGORYOPTIONS: T.List[str] = ["A", "B", "C", "D"]
     REPORTKINDOPTIONS: T.List[str] = ["PIREP", "MAREP"]
     AIRCRAFTMODELS: T.List[str] = [
         "A319",

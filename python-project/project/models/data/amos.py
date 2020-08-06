@@ -57,7 +57,7 @@ class MaintenanceEvent(object):
 
 
 @attr.s(auto_attribs=True)
-class OperationInterruption(MaintenanceEvent):
+class OperationalInterruption(MaintenanceEvent):
     flightid: T.Optional[str]
     departure: T.Optional[datetime]
     delaycode: T.Optional[str]

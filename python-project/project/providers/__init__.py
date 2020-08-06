@@ -1017,8 +1017,8 @@ class AirportProvider(BaseProvider):
             text=f"???", letters=self._alphabet
         )
 
-    def fleet(self, size: int) -> T.List[str]:
-        return [self.aircraft_registration_code() for _ in range(size)]
+    def fleet(self, fleet_size: int) -> T.List[str]:
+        return [self.aircraft_registration_code() for _ in range(fleet_size)]
 
     def manufacturer_serial_number(self) -> str:
         return self.numerify(text="MSN %%%%")
@@ -1049,7 +1049,8 @@ class AirportProvider(BaseProvider):
     ) -> T.Union[timedelta, T.Tuple[str, timedelta]]:
         """Returns a time interval specific to some interruption type. 
 
-        If no type is provided, then an interruption type is randomly generated.
+        If no interruption type is provided, then an interruption type is
+        generated internally.
 
         :return: A duration object or a tuple with the type and duration
         :rtype: T.Union[timedelta, T.Tuple[str, timedelta]]
@@ -1058,6 +1059,7 @@ class AirportProvider(BaseProvider):
             interruption_type = self.maintenance_event_kind()
 
         # setup depending on the maintenance kind obtained
+        # this
         if interruption_type == "Delay":
             duration = self.duration(max_minutes=59)
         elif interruption_type == "Safety":
@@ -1087,11 +1089,11 @@ class AirportProvider(BaseProvider):
             mel_type = self.mel_category_kind()
 
         _mel_mapping = {
-                        "A": timedelta(days=-3),
-                        "B": timedelta(days=-10),
-                        "C": timedelta(days=-30),
-                        "D": timedelta(days=-120),
-                    }
+            "A": timedelta(days=-3),
+            "B": timedelta(days=-10),
+            "C": timedelta(days=-30),
+            "D": timedelta(days=-120),
+        }
 
         return _mel_mapping.get(mel_type, timedelta(days=-5))
 
@@ -1135,10 +1137,14 @@ class AirportProvider(BaseProvider):
             executionplace=self.airport_code(),
         )
 
-    def attachment(self) -> amos.Attachment:
+    def attachment(
+        self, operational_interruption: amos.OperationalInterruption = None
+    ) -> amos.Attachment:
+
+        oi = operational_interruption or self.operational_interruption_event()
+
         return amos.Attachment(
-            file=self.generator.uuid4(),  # TODO: this is rule R4
-            event=self.maintenance_id(),
+            file=self.generator.uuid4(), event=oi.maintenanceid,  # R4  # R5
         )
 
     def work_order(self, max_id: int = 9999) -> amos.WorkOrder:
@@ -1154,13 +1160,15 @@ class AirportProvider(BaseProvider):
 
         return order
 
-    def forecasted_order(self, max_id: int = 9999) -> amos.ForecastedOrder:
+    def forecasted_order(
+        self, max_id: int = 9999, custom_id: T.Optional[int] = None
+    ) -> amos.ForecastedOrder:
 
         planned = self.flight_timestamp()
         deadline = planned + self.interruption_duration()
 
         order = amos.ForecastedOrder(
-            workorderid=self.random_int(max=max_id),
+            workorderid=custom_id or self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(),
             executiondatetime=self.flight_timestamp(),
             executionplace=self.airport_code(),
@@ -1176,7 +1184,7 @@ class AirportProvider(BaseProvider):
         return order
 
     def technical_logbook_order(
-        self, max_id: int = 9999
+        self, max_id: int = 9999, custom_id: T.Optional[int] = None
     ) -> amos.TechnicalLogbookOrder:
 
         # R10: MELCathegory values A,B,C,D refer to 3,10,30,120 days of allowed delay in the
@@ -1187,7 +1195,7 @@ class AirportProvider(BaseProvider):
         deadline = planned + self.reporting_deadline_duration(mel_type=mel)
 
         order = amos.TechnicalLogbookOrder(
-            workorderid=self.random_int(max=max_id),
+            workorderid=custom_id or self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(),
             executiondatetime=self.flight_timestamp(),
             executionplace=self.airport_code(),
@@ -1203,23 +1211,103 @@ class AirportProvider(BaseProvider):
 
         return order
 
-    def operational_interruption_event(self) -> amos.OperationInterruption:
+    def maintenance_event(
+        self,
+        max_id: int = 9999,
+        maintenance_slot: T.Optional[aims.MaintenanceSlot] = None,
+        kind: T.Optional[str] = None,
+    ) -> amos.MaintenanceEvent:
+        """produces a random maintenance event
 
-        starttime = self.flight_timestamp()
-        kind = self.maintenance_event_kind()
-        duration = self.interruption_duration(interruption_type=kind)
+        :return: an instance of MaintenanceEvent
+        :rtype: amos.MaintenanceEvent
+        """
 
-        return amos.OperationInterruption(
-            maintenanceid=self.maintenance_id(),
-            aircraftregistration=self.aircraft_registration_code(),
-            airport=self.airport_code(),
+        # > R14: In MaintenanceEvents, the events of kind Maintenance that correspond to a Revision,
+        # > are those of the same aircraft whose interval is completely included in that of
+        # > the Revision.
+        # >
+        # > For all of them, the airport must be the same. or In MaintenanceEvents,
+        # > the events of kind Maintenance cannot partially intersect that of a Revision of the same
+        # > aircraft.
+
+        # My understanding of this is that
+        # for a given MaintenanceEvent "me" in AMOS, if the kind is "Revision",
+        # then there must be an instance of MaintenanceSlot, "ms"
+        # whose (ms.scheduled_arrival - ms.scheduled_departure) >= me.duration
+        # these two instances must share the aircraft registration
+
+        # the second part is trickier, I suspect that once I have all maintenance
+        # events ready, then I have to check all of them for overlaps
+
+        # start off with a random maintenance_slot instance
+        ms = maintenance_slot or self.maintenance_slot()
+        kind = kind or self.maintenance_event_kind()
+
+        if kind == "Revision":
+            # if the maintenance is a revision, then the maintenance duration
+            # must be within the range of the time the maintenance slot was occupied
+            max_duration = ms.scheduledarrival - ms.scheduleddeparture
+            duration = max_duration - self.duration(
+                max_minutes=max_duration.seconds // 60
+            )
+        else:
+            duration = self.interruption_duration(interruption_type=kind)
+
+        maintenance_id = "_".join(
+            [str(self.random_int(max=max_id)), str(ms.scheduleddeparture + duration),]
+        )
+
+        return amos.MaintenanceEvent(
+            maintenanceid=maintenance_id,
+            aircraftregistration=ms.aircraftregistration,
+            airport=self.airport_code(),  # R11: Airport must be the same, and not null
             subsystem=self.ata_code(),
-            starttime=self.flight_timestamp(),
+            starttime=ms.scheduleddeparture,
             duration=duration,
             kind=kind,
-            flightid=self.flight_id(),
-            departure=starttime + duration,
-            delaycode=self.delay_code(),
+        )
+
+    def operational_interruption_event(
+        self,
+        max_id: int = 9999,
+        flight_slot: T.Optional[aims.FlightSlot] = None,
+    ) -> amos.OperationalInterruption:
+        """produces a random operational interruption
+
+        An Operational Interruption is a maintenance event that occurs at
+        a flight slot, and occasionates some kind of delay
+
+        :return: an instance of OperationalInterruption
+        :rtype: amos.OperationalInterruption
+        """
+
+        # the implementation is the same as maintenanceevent,
+        # but here we need to bind it to a flight
+        fs = flight_slot or self.flight_slot()
+
+        starttime = fs.scheduleddeparture
+        kind = self.maintenance_event_kind()
+        duration = self.interruption_duration(interruption_type=kind)
+        maintenance_id = "_".join(
+            [str(self.random_int(max=max_id)), str(starttime + duration)]
+        )
+
+        # R13: Values can't be null, and must be the same as in a flight
+        flight_id = fs.flightid
+        delay_code = fs.delaycode
+
+        return amos.OperationalInterruption(
+            maintenanceid=maintenance_id,
+            aircraftregistration=fs.aircraftregistration,
+            airport=fs.departureairport,  # R11: Airport must have a value
+            subsystem=self.ata_code(),
+            starttime=starttime,
+            duration=duration,
+            kind=kind,
+            flightid=flight_id,  # R12
+            departure=fs.scheduleddeparture.strftime("%d-%m-%Y"),  # R12
+            delaycode=delay_code,  # R13
         )
 
     # ---------------------------------------------------------------------------- #
@@ -1229,9 +1317,12 @@ class AirportProvider(BaseProvider):
     def flight_id(self) -> str:
         return self.flight_slot().flightid
 
-    def flight_slot(
-        self, cancelled: T.Optional[bool] = None, config: T.Optional[T.Any] = {}
-    ) -> aims.FlightSlot:
+    def flight_slot(self, *args, **kwargs) -> aims.FlightSlot:
+
+        # args, kwargs unpacking
+        cancelled = kwargs.pop("cancelled", None)
+        config = kwargs.pop("config", {})
+        manufacturer = kwargs.pop("manufacturer", None)
 
         # TODO: remove these defaults and expose them at a higher level
         max_duration: int = config.get("max_duration", 5)
@@ -1254,7 +1345,9 @@ class AirportProvider(BaseProvider):
         scheduled_arrival: datetime = scheduled_departure + self.duration(
             max_minutes=max_duration
         )
-        aircraft_registration: str = self.aircraft_registration_code()
+        aircraft_registration: str = getattr(
+            manufacturer, "aircraft_reg_code", None
+        ) or self.aircraft_registration_code()
 
         if cancelled is None:
             cancelled = self.generator.pybool()
@@ -1303,13 +1396,19 @@ class AirportProvider(BaseProvider):
             flightcrew=flight_crew,
         )
 
-    def maintenance_slot(self, config=None) -> aims.MaintenanceSlot:
+    def maintenance_slot(self, *args, **kwargs) -> aims.MaintenanceSlot:
+
+        # kwargs unpacking
+        config = kwargs.pop("config", {})
+        manufacturer = kwargs.pop("manufacturer", None)
 
         # TODO: remove these defaults and expose them at a higher level
-        config = {}
         max_duration: int = config.get("max_duration", 5)
 
-        aircraft_registration: str = self.aircraft_registration_code()
+        aircraft_registration: str = getattr(
+            manufacturer, "aircraft_reg_code", None
+        ) or self.aircraft_registration_code()
+
         scheduled_departure: datetime = self.flight_timestamp()
         scheduled_arrival: datetime = scheduled_departure + self.duration(
             max_minutes=max_duration
@@ -1323,7 +1422,7 @@ class AirportProvider(BaseProvider):
             programmed=self.generator.pybool(),
         )
 
-    def any_slot(
+    def random_slot(
         self, prob_flight_slot: float = 0.5
     ) -> T.Union[aims.FlightSlot, aims.MaintenanceSlot]:
         """returns an instance of FlightSlot or MaintenanceSlot using weighted probabilities
@@ -1335,7 +1434,7 @@ class AirportProvider(BaseProvider):
         :rtype: T.Union[aims.FlightSlot, aims.MaintenanceSlot]
         """
 
-        if 1 < prob_flight_slot < 0:
+        if not (0 < prob_flight_slot < 1):
             raise ValueError("prob_flight_slot must be a float in range [0,1]")
 
         prob_maintenance_slot = 1 - prob_flight_slot
@@ -1349,9 +1448,39 @@ class AirportProvider(BaseProvider):
                 ]
             ),
             unique=False,
-        )[
-            0
-        ]  # random elements returns a list
+        )[0]
+        # random elements returns a list
+
+        return selection()
+
+    def random_work_order(
+        self, prob_tlb: float = 0.5
+    ) -> T.Union[amos.TechnicalLogbookOrder, amos.ForecastedOrder]:
+        """returns an instance of TechnicalLogbookOrder or ForecastedOrder using weighted probabilities
+
+        :param prob_tlb: probability of returning a TechnicalLogbookOrder instance, defaults to 0.5
+        :type prob_tlb: float, optional
+        :raises ValueError: If probability is outside of range [0, 1]
+        :return: a TechnicalLogbookOrder or ForecastedOrder instance at random
+        :rtype: T.Union[aims.TechnicalLogbookOrder, aims.ForecastedOrder]
+        """
+
+        if not (0 < prob_tlb < 1):
+            raise ValueError("prob_tlb must be a float in range [0,1]")
+
+        prob_forecasted = 1 - prob_tlb
+
+        # https://faker.readthedocs.io/en/master/providers/baseprovider.html#faker.providers.BaseProvider.random_elements
+        selection = self.random_elements(
+            elements=OrderedDict(
+                [
+                    (self.technical_logbook_order, prob_tlb,),
+                    (self.forecasted_order, prob_forecasted,),
+                ]
+            ),
+            unique=False,
+        )[0]
+        # random elements returns a list
 
         return selection()
 
@@ -1364,5 +1493,5 @@ if __name__ == "__main__":
     print(fake.fleet(10))
     print(fake.reporter())
     print(fake.manufacturer())
-    # print(fake.duration())
+    print(fake.duration())
     print(fake.forecasted_order())
