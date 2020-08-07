@@ -1012,8 +1012,9 @@ class AirportProvider(BaseProvider):
             self._offset_timestamp, self._end_timestamp
         )
 
-    def aircraft_registration_code(self) -> str:
-        return self._register_prefix + self.lexify(
+    def aircraft_registration_code(self, prefix: str = None) -> str:
+        register_prefix = prefix or self._register_prefix
+        return register_prefix + self.lexify(
             text=f"???", letters=self._alphabet
         )
 
