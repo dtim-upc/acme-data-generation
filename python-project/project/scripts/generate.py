@@ -1,24 +1,13 @@
-import datetime as dt
 import logging
 import random
 import typing as T
-from datetime import datetime
-from pathlib import Path
-from uuid import UUID
-from collections import OrderedDict
+from tqdm import tqdm
 
 from faker import Faker
 
-from project.providers import fake
 from project.base.config import BaseConfig
-from project.models.data import amos, aims
-
-config = BaseConfig()
-
-Faker.seed(config.SEED)
-random.seed(config.SEED)
-
-logging.basicConfig(level=logging.DEBUG)  # use root logger
+from project.models.data import aims, amos
+from project.providers import fake
 
 
 class AircraftGenerator:
@@ -36,13 +25,12 @@ class AircraftGenerator:
 
         # from these manufacturers, we obtain a list of aircraft_registration_codes
         # from which we obtain slots
-
-        size = self.config.SIZE
         self.slots = []
         self.flight_slots = []
         self.maintenance_slots = []
 
-        for _ in range(size):
+        logging.info("Generating flight and maintenance slots")
+        for _ in tqdm(range(self.config.SIZE)):
 
             # populate flight slots, maintenance slots, and slots
             if fake.boolean(self.config.PROB_FLIGHT_SLOT * 100):
@@ -62,7 +50,8 @@ class AircraftGenerator:
         self.maintenance_events = []
 
         # create_operational_interruptions:
-        for flight_slot in self.flight_slots:
+        logging.info("Generating operational interruptions")
+        for flight_slot in tqdm(self.flight_slots):
             # produce a number of operational interruptions
             oi = fake.operational_interruption_event(
                 max_id=self.config.SIZE, flight_slot=flight_slot
@@ -70,51 +59,69 @@ class AircraftGenerator:
             self.operational_interruptions.append(oi)
             self.maintenance_events.append(oi)
 
-        for maintenance_slot in self.maintenance_slots:
+        logging.info("Generating maintenance events")
+        for maintenance_slot in tqdm(self.maintenance_slots):
             m = fake.maintenance_event(
                 max_id=self.config.SIZE, maintenance_slot=maintenance_slot
             )
-
             self.maintenance_events.append(m)
 
         # create attachments
         self.attachments = []
 
-        for oi in self.operational_interruptions:
+        logging.info("Generating attachments")
+        for oi in tqdm(self.operational_interruptions):
             event_attachments = []
+            logging.debug(
+                f"Generating attachments for oi '{oi.maintenanceid}'"
+            )
             for j in range(self.config.MAX_ATTCH_SIZE):
                 fake_attachment = fake.attachment(operational_interruption=oi)
                 event_attachments.append(fake_attachment)
             self.attachments.append(event_attachments)
 
+        logging.info(f"Generating technical logbook orders")
         self.tlb_orders = [
-            fake.technical_logbook_order(max_id=size)
-            for _ in range(self.config.SIZE)
+            fake.technical_logbook_order(max_id=self.config.SIZE)
+            for _ in tqdm(range(self.config.SIZE))
         ]
 
+        logging.info(f"Generating forecasted orders")
         self.forecasted_orders = [
             fake.forecasted_order(max_id=self.config.SIZE)
-            for _ in range(self.config.SIZE)
+            for _ in tqdm(range(self.config.SIZE))
         ]
 
+        logging.info(f"Generating work orders")
         # https://stackoverflow.com/a/56735440/5819113
         self.workorders = [*self.tlb_orders, *self.forecasted_orders]
 
+        logging.info(f"Done")
+
     @property
-    def _status(self):
+    def status(self):
         return {
             k: len(v) for k, v in self.__dict__.items() if isinstance(v, list)
         }
 
+    @property
+    def total_generated(self):
+        return sum(v for k, v in self.status.items())
+
     def __str__(self):
-        return "\n".join([f"{k}: {v}" for k, v in self._status.items()])
+        return "\n".join([f"{k}: {v}" for k, v in self.status.items()])
 
 
 if __name__ == "__main__":
 
+    logging.basicConfig(level=logging.INFO)  # use root logger
+    config = BaseConfig(SIZE=10)
+    Faker.seed(config.SEED)
+    random.seed(config.SEED)
+    # print(fake.manufacturer())
+
     g = AircraftGenerator(config=config)
-    # print(g.manufacturers)
     g.populate()
-    print("Elements generated:")
-    print(g)
-    print("Done")
+    logging.info("Elements generated:")
+    logging.info(g)
+    logging.info("Done")
