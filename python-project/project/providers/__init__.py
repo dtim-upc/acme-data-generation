@@ -3,7 +3,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 
 from faker import Faker
-from faker.providers import BaseProvider, date_time
+from faker.providers import BaseProvider
 
 from project.models.data import aims, amos
 from project.models.data.serializable import Manufacturer, Reporter
@@ -1144,8 +1144,8 @@ class AirportProvider(BaseProvider):
         oi = operational_interruption or self.operational_interruption_event()
 
         return amos.Attachment(
-            file=self.generator.uuid4(), event=oi.maintenanceid,  # R4  # R5
-        )
+            file=self.generator.uuid4(), event=oi.maintenanceid
+        )  # R4  # R5
 
     def work_order(self, max_id: int = 9999) -> amos.WorkOrder:
 
@@ -1255,7 +1255,10 @@ class AirportProvider(BaseProvider):
             duration = self.interruption_duration(interruption_type=kind)
 
         maintenance_id = "_".join(
-            [str(self.random_int(max=max_id)), str(ms.scheduleddeparture + duration),]
+            [
+                str(self.random_int(max=max_id)),
+                str(ms.scheduleddeparture + duration),
+            ]
         )
 
         return amos.MaintenanceEvent(
