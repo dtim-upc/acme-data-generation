@@ -4,7 +4,7 @@ import attr
 
 
 @attr.s(auto_attribs=True)
-class Config:
+class BaseConfig:
     """A configuration class to control the generation process"""
 
     def validate(self):

@@ -10,10 +10,10 @@ from collections import OrderedDict
 from faker import Faker
 
 from project.providers import fake
-from project.scripts.config import Config
+from project.base.config import BaseConfig
 from project.models.data import amos, aims
 
-config = Config()
+config = BaseConfig()
 
 Faker.seed(config.SEED)
 random.seed(config.SEED)
