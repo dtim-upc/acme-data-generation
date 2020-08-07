@@ -32,9 +32,9 @@ def test_flight_slot(fake, config):
     assert re_airport.search(data.arrivalairport)
     assert isinstance(data.cancelled, bool)
     assert re_flightid.search(data.flightid)
-    assert config.MIN_PAS <= data.passengers <= config.MAX_PAS
-    assert config.MIN_CCREW <= data.cabincrew <= config.MAX_CCREW
-    assert config.MIN_FCREW <= data.flightcrew <= config.MAX_FCREW
+    assert config.min_pas <= data.passengers <= config.max_pas
+    assert config.min_ccrew <= data.cabincrew <= config.max_ccrew
+    assert config.min_fcrew <= data.flightcrew <= config.max_fcrew
 
 
 def test_cancelled_flight(fake, config):
@@ -50,4 +50,3 @@ def test_non_cancelled_flight(fake, config):
     data = fake.flight_slot(cancelled=False)
     assert data.actualdeparture < data.actualarrival
     assert re_delaycode.search(data.delaycode)
-

@@ -1,22 +1,24 @@
+import typing as T
+from datetime import datetime
+
 import pytest
 from faker import Faker
-from project.providers import AirportProvider
-from project.base.config import BaseConfig
 
-from datetime import datetime
-import typing as T
+from project.base.config import BaseConfig
+from project.providers import AirportProvider
+from project.scripts.generate import AircraftGenerator
 
 
 @pytest.fixture()
 def config():
-    class TestConfig(BaseConfig):
+    config = BaseConfig(
+        seed=42,
+        size=10,  # number of rows of the CSV
+        max_attch_size=1,
+        max_work_orders=1,
+    )
 
-        SEED: int = 42
-        SIZE: int = 10  # number of rows of the CSV
-        MAX_ATTCH_SIZE: int = 1
-        MAX_WORK_ORDERS: int = 1
-
-    yield TestConfig()
+    yield config
 
 
 @pytest.fixture()
@@ -25,3 +27,10 @@ def fake():
     Faker.seed(42)
     fake.add_provider(AirportProvider)
     yield fake
+
+
+@pytest.fixture()
+def gen(config):
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+    yield ag
