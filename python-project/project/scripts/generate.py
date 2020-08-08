@@ -3,6 +3,7 @@ import logging
 import random
 import typing as T
 from pathlib import Path
+from itertools import chain
 
 import attr
 from faker import Faker
@@ -20,14 +21,19 @@ class AircraftGenerator:
 
     def to_csv(self, path: Path) -> Path:
 
-        entities: T.Generator = {
-            k: v for k, v in self.__dict__.items() if isinstance(v, list)
-        }
+        for tablename, entities in self.state.items():
+            file = path.joinpath(f"{tablename}.csv")
 
-        for k, v in entities.items():
-            file = path.joinpath(f"{k}.csv")
-            writer = csv.writer(file.open("wt"), delimiter=",")
-            for entity in v:
+            # creates a dictwriter
+            writer = csv.DictWriter(
+                file.open("wt"),
+                fieldnames=attr.asdict(entities[0]).keys(),
+                delimiter=",",
+            )
+
+            writer.writeheader()
+
+            for entity in entities:
                 writer.writerow(attr.asdict(entity))
 
         return path
@@ -69,7 +75,10 @@ class AircraftGenerator:
 
         logging.debug("Generating slots")
         # https://stackoverflow.com/a/56735440/5819113
-        self.slots = [*self.flight_slots, *self.maintenance_slots]
+        self.slots = [
+            aims.Slot.from_child(obj)
+            for obj in chain(self.flight_slots, self.maintenance_slots)
+        ]
 
         self.operational_interruptions = []
         self.maintenance_events = []
@@ -102,7 +111,7 @@ class AircraftGenerator:
             for j in range(self.config.max_attch_size):
                 fake_attachment = fake.attachment(operational_interruption=oi)
                 event_attachments.append(fake_attachment)
-            
+
             # we don't want nested lists
             self.attachments.extend(event_attachments)
 
@@ -121,9 +130,18 @@ class AircraftGenerator:
         ]
 
         logging.debug(f"Generating work orders")
-        self.workorders = [*self.tlb_orders, *self.forecasted_orders]
+
+        self.workorders = [
+            amos.WorkOrder.from_child(obj)
+            for obj in chain(self.tlb_orders, self.forecasted_orders)
+        ]
+
         logging.info(f"Done")
         return self
+
+    @property
+    def state(self):
+        return {k: v for k, v in self.__dict__.items() if isinstance(v, list)}
 
     @property
     def status(self):
@@ -152,6 +170,6 @@ if __name__ == "__main__":
 
     g = AircraftGenerator(config=config)
     g.populate()
-    g._entity_klass_mapping()
+    g.to_csv(path=Path(__file__).parent.parent.parent.joinpath("out"))
 
     print("Done")

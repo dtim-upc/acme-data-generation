@@ -25,6 +25,17 @@ class WorkOrder(object):
     workpackage: T.Optional[int]
     kind: T.Optional[str]
 
+    @classmethod
+    def from_child(cls, obj):
+        return cls(
+            obj.workorderid,
+            obj.aircraftregistration,
+            obj.executiondatetime,
+            obj.executionplace,
+            obj.workpackage,
+            obj.kind,
+        )
+
 
 @attr.s(auto_attribs=True)
 class ForecastedOrder(WorkOrder):
@@ -54,6 +65,18 @@ class MaintenanceEvent(object):
     starttime: T.Optional[datetime]
     duration: T.Optional[timedelta]
     kind: T.Optional[str]
+
+    @classmethod
+    def from_child(cls, obj):
+        return cls(
+            obj.maintenanceid,
+            obj.aircraftregistration,
+            obj.airport,
+            obj.subsystem,
+            obj.starttime,
+            obj.duration,
+            obj.kind,
+        )
 
 
 @attr.s(auto_attribs=True)

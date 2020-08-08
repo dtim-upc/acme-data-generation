@@ -3,12 +3,22 @@ from faker import Faker
 from datetime import datetime
 import attr
 
+
 @attr.s(auto_attribs=True)
 class Slot(object):
     aircraftregistration: T.Optional[str]
     scheduleddeparture: T.Optional[str]
     scheduledarrival: T.Optional[str]
     kind: T.Optional[str]
+
+    @classmethod
+    def from_child(cls, obj):
+        return cls(
+            obj.aircraftregistration,
+            obj.scheduleddeparture,
+            obj.scheduledarrival,
+            obj.kind,
+        )
 
 
 @attr.s(auto_attribs=True)

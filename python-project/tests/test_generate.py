@@ -133,6 +133,14 @@ def test_csv_files_written(tmp_path, gen):
     for file in d.iterdir():
         with file.open("rt") as fp:
             csvreader = csv.reader(fp)
-            row_count = sum(1 for _ in csvreader)
+            next(csvreader)  # pop header
+            row_count = sum(
+                1 for _ in csvreader
+            )  # row_count =+ 1 if we don't pop the header
             assert row_count == gen.status[file.stem]
 
+
+@pytest.mark.skip("Not implemented yet")
+def test_csv_contents(tmp_path, gen):
+    # not implemented
+    assert False
