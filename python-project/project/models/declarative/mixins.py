@@ -13,9 +13,9 @@ class ReprMixin(object):
         )
 
 
-class GhostIdMixin(object):
+class RowIdMixin(object):
     """Implements a dummy id to make sqlalchemy work.
     
-    This id is not meant to be used at the DB level"""
+    This id is not meaningful at a domain level"""
 
-    ghost_id = sa.Column("id", sa.Integer, primary_key=True)
+    rowid = sa.Column("id", sa.Integer, primary_key=True)

@@ -3,8 +3,8 @@ import typing as T
 
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
-from project.models.declarative.mixins import ReprMixin, GhostIdMixin
-
+from project.models.declarative.mixins import ReprMixin, RowIdMixin
+import attr
 
 Base = declarative_base()
 
@@ -16,7 +16,9 @@ sa.event.listen(
 )
 
 sa.event.listen(
-    Base.metadata, "after_drop", sa.DDL('DROP SCHEMA IF EXISTS "AIMS" CASCADE'),
+    Base.metadata,
+    "after_drop",
+    sa.DDL('DROP SCHEMA IF EXISTS "AIMS" CASCADE'),
 )
 
 __doc__ = """Classes used to populate the AIMS schema. 
@@ -77,15 +79,13 @@ class SlotsMixin(object):
         nullable=False,
     )
 
-
-class Flight(Base, SlotsMixin, AIMSMixin):
+class Flight(Base, RowIdMixin, SlotsMixin, AIMSMixin):
     __tablename__ = "flights"
 
-    flightid = sa.Column(
-        "flightid", sa.CHAR(26), nullable=False, primary_key=True
+    flightid = sa.Column("flightid", sa.CHAR(26), nullable=False)
+    departureairport = sa.Column(
+        "departureairport", sa.CHAR(3), nullable=False
     )
-
-    departureairport = sa.Column("departureairport", sa.CHAR(3), nullable=False)
     arrivalairport = sa.Column("arrivalairport", sa.CHAR(3), nullable=False)
     actualdeparture = sa.Column("actualdeparture", sa.DateTime)
     actualarrival = sa.Column("actualarrival", sa.DateTime)
@@ -95,10 +95,20 @@ class Flight(Base, SlotsMixin, AIMSMixin):
     cabincrew = sa.Column("cabincrew", sa.SmallInteger)
     flightcrew = sa.Column("flightcrew", sa.SmallInteger)
 
-class Maintenance(Base, GhostIdMixin, SlotsMixin, AIMSMixin):
+    @classmethod
+    def from_child(cls, obj):
+        return cls(
+            obj.aircraftregistration,
+            obj.scheduleddeparture,
+            obj.scheduledarrival,
+            obj.kind,
+        )
+
+
+class Maintenance(Base, RowIdMixin, SlotsMixin, AIMSMixin):
     __tablename__ = "maintenance"
     programmed = sa.Column("programmed", sa.Boolean, nullable=False)
 
 
-class Slot(Base, GhostIdMixin, SlotsMixin, AIMSMixin):
+class Slot(Base, RowIdMixin, SlotsMixin, AIMSMixin):
     __tablename__ = "slots"

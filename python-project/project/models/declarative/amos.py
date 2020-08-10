@@ -3,7 +3,7 @@
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import INTERVAL, UUID
-from project.models.declarative.mixins import ReprMixin, GhostIdMixin
+from project.models.declarative.mixins import ReprMixin, RowIdMixin
 
 
 __doc__ = """Classes used to populate the AMOS schema. 
@@ -25,7 +25,9 @@ sa.event.listen(
 )
 
 sa.event.listen(
-    Base.metadata, "after_drop", sa.DDL('DROP SCHEMA IF EXISTS "AMOS" CASCADE'),
+    Base.metadata,
+    "after_drop",
+    sa.DDL('DROP SCHEMA IF EXISTS "AMOS" CASCADE'),
 )
 
 
@@ -99,14 +101,70 @@ class AMOSMixin(object):
     __table_args__ = {"schema": "AMOS"}
 
 
-class Attachment(Base, GhostIdMixin, AMOSMixin):
+class Attachment(Base, RowIdMixin, AMOSMixin):
     __tablename__ = "attachments"
     file = sa.Column("file", UUID)
     event = sa.Column("event", sa.CHAR(30), nullable=False)
 
 
-class ForecastedOrder(Base, GhostIdMixin, AMOSMixin):
-    __tablename__ = "forecastedorders"
+class Workpackage(Base, RowIdMixin, AMOSMixin):
+    __tablename__ = "workpackages"
+    workpackageid = sa.Column("workpackageid", sa.Integer)
+    executiondate = sa.Column("executiondate", sa.Date)
+    executionplace = sa.Column("executionplace", sa.CHAR(3))
+
+
+class MaintenanceEventMixin(object):
+
+    maintenanceid = sa.Column("maintenanceid", sa.CHAR(30))
+    aircraftregistration = sa.Column(
+        "aircraftregistration", sa.CHAR(6), nullable=False
+    )
+    airport = sa.Column("airport", sa.CHAR(3))
+    subsystem = sa.Column("subsystem", sa.CHAR(4))
+    starttime = sa.Column("starttime", sa.DateTime)
+    duration = sa.Column("duration", INTERVAL)
+    kind = sa.Column(
+        "kind",
+        sa.Enum(
+            "Delay",
+            "Safety",
+            "AircraftOnGround",
+            "Maintenance",
+            "Revision",
+            name="maintenanceeventkind",
+        ),
+        nullable=False,
+    )
+
+    @classmethod
+    def from_child(cls, obj):
+        return cls(
+            obj.maintenanceid,
+            obj.aircraftregistration,
+            obj.airport,
+            obj.subsystem,
+            obj.starttime,
+            obj.duration,
+            obj.kind,
+        )
+
+
+class MaintenanceEvent(Base, RowIdMixin, MaintenanceEventMixin, AMOSMixin):
+    __tablename__ = "maintenanceevents"
+
+
+class OperationInterruption(
+    Base, RowIdMixin, MaintenanceEventMixin, AMOSMixin
+):
+    __tablename__ = "operationinterruption"
+
+    flightid = sa.Column("flightid", sa.CHAR(22), nullable=False)
+    departure = sa.Column("departure", sa.Date, nullable=False)
+    delaycode = sa.Column("delaycode", sa.CHAR(2))
+
+
+class WorkOrderMixin(object):
 
     workorderid = sa.Column("workorderid", sa.Integer)
     aircraftregistration = sa.Column(
@@ -120,6 +178,41 @@ class ForecastedOrder(Base, GhostIdMixin, AMOSMixin):
         sa.Enum("Forecast", "TechnicalLogBook", name="workorderkind"),
         nullable=False,
     )
+
+    @classmethod
+    def from_child(cls, obj):
+        return cls(
+            obj.workorderid,
+            obj.aircraftregistration,
+            obj.executiondatetime,
+            obj.executionplace,
+            obj.workpackage,
+            obj.kind,
+        )
+
+
+class WorkOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
+    __tablename__ = "workorders"
+
+
+class TechnicalLogbookOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
+    __tablename__ = "technicallogbookorders"
+
+    reporteurclass = sa.Column(
+        "reporteurclass",
+        sa.Enum("PIREP", "MAREP", name="reportkind"),
+        nullable=False,
+    )
+    reporteurid = sa.Column("reporteurid", sa.SmallInteger, nullable=False)
+    reportingdate = sa.Column("reportingdate", sa.Date, nullable=False)
+    due = sa.Column("due", sa.Date)
+    deferred = sa.Column("deferred", sa.Boolean)
+    mel = sa.Column("mel", sa.Enum("A", "B", "C", "D", name="melcathegory"))
+
+
+class ForecastedOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
+    __tablename__ = "forecastedorders"
+
     deadline = sa.Column("deadline", sa.Date, nullable=False)
     planned = sa.Column("planned", sa.Date, nullable=False)
     frequency = sa.Column("frequency", sa.SmallInteger, nullable=False)
@@ -133,107 +226,3 @@ class ForecastedOrder(Base, GhostIdMixin, AMOSMixin):
     forecastedmanhours = sa.Column(
         "forecastedmanhours", sa.SmallInteger, nullable=False
     )
-
-
-class MaintenanceEvent(Base, GhostIdMixin, AMOSMixin):
-    __tablename__ = "maintenanceevents"
-
-    maintenanceid = sa.Column("maintenanceid", sa.CHAR(30))
-    aircraftregistration = sa.Column(
-        "aircraftregistration", sa.CHAR(6), nullable=False
-    )
-    airport = sa.Column("airport", sa.CHAR(3))
-    subsystem = sa.Column("subsystem", sa.CHAR(4))
-    starttime = sa.Column("starttime", sa.DateTime)
-    duration = sa.Column("duration", INTERVAL)
-    kind = sa.Column(
-        "kind",
-        sa.Enum(
-            "Delay",
-            "Safety",
-            "AircraftOnGround",
-            "Maintenance",
-            "Revision",
-            name="maintenanceeventkind",
-        ),
-        nullable=False,
-    )
-
-
-class OperationInterruption(Base, GhostIdMixin, AMOSMixin):
-    __tablename__ = "operationinterruption"
-    maintenanceid = sa.Column("maintenanceid", sa.CHAR(30))
-    aircraftregistration = sa.Column(
-        "aircraftregistration", sa.CHAR(6), nullable=False
-    )
-    airport = sa.Column("airport", sa.CHAR(3))
-    subsystem = sa.Column("subsystem", sa.CHAR(4))
-    starttime = sa.Column("starttime", sa.DateTime)
-    duration = sa.Column("duration", INTERVAL)
-    kind = sa.Column(
-        "kind",
-        sa.Enum(
-            "Delay",
-            "Safety",
-            "AircraftOnGround",
-            "Maintenance",
-            "Revision",
-            name="maintenanceeventkind",
-        ),
-        nullable=False,
-    )
-    flightid = sa.Column("flightid", sa.CHAR(22), nullable=False)
-    departure = sa.Column("departure", sa.Date, nullable=False)
-    delaycode = sa.Column("delaycode", sa.CHAR(2))
-
-
-class TechnicalLogbookOrder(Base, GhostIdMixin, AMOSMixin):
-    __tablename__ = "technicallogbookorders"
-
-    workorderid = sa.Column("workorderid", sa.Integer)
-    aircraftregistration = sa.Column(
-        "aircraftregistration", sa.CHAR(6), nullable=False
-    )
-    executiondate = sa.Column("executiondate", sa.Date)
-    executionplace = sa.Column("executionplace", sa.CHAR(3))
-    workpackage = sa.Column("workpackage", sa.Integer)
-    kind = sa.Column(
-        "kind",
-        sa.Enum("Forecast", "TechnicalLogBook", name="workorderkind"),
-        nullable=False,
-    )
-    reporteurclass = sa.Column(
-        "reporteurclass",
-        sa.Enum("PIREP", "MAREP", name="reportkind"),
-        nullable=False,
-    )
-    reporteurid = sa.Column("reporteurid", sa.SmallInteger, nullable=False)
-    reportingdate = sa.Column("reportingdate", sa.Date, nullable=False)
-    due = sa.Column("due", sa.Date)
-    deferred = sa.Column("deferred", sa.Boolean)
-    mel = sa.Column("mel", sa.Enum("A", "B", "C", "D", name="melcathegory"))
-
-
-class WorkOrder(Base, GhostIdMixin, AMOSMixin):
-    __tablename__ = "workorders"
-
-    workorderid = sa.Column("workorderid", sa.Integer)
-    aircraftregistration = sa.Column(
-        "aircraftregistration", sa.CHAR(6), nullable=False
-    )
-    executiondate = sa.Column("executiondate", sa.Date)
-    executionplace = sa.Column("executionplace", sa.CHAR(3))
-    workpackage = sa.Column("workpackage", sa.Integer)
-    kind = sa.Column(
-        "kind",
-        sa.Enum("Forecast", "TechnicalLogBook", name="workorderkind"),
-        nullable=False,
-    )
-
-
-class Workpackage(Base, GhostIdMixin, AMOSMixin):
-    __tablename__ = "workpackages"
-    workpackageid = sa.Column("workpackageid", sa.Integer)
-    executiondate = sa.Column("executiondate", sa.Date)
-    executionplace = sa.Column("executionplace", sa.CHAR(3))
-
