@@ -159,7 +159,10 @@ class OperationalInterruption(
 ):
     __tablename__ = "operationinterruption"
 
-    flightid = sa.Column("flightid", sa.CHAR(22), nullable=False)
+    # TODO: confirm that
+    # in the given sql for this table, `flightid` is of length 22. If the business rule R13 is hold, then
+    # an operational interruption should have the same flightid, which is of length 26.
+    flightid = sa.Column("flightid", sa.CHAR(26), nullable=False)
     departure = sa.Column("departure", sa.Date, nullable=False)
     delaycode = sa.Column("delaycode", sa.CHAR(2))
 
