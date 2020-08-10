@@ -1156,7 +1156,7 @@ class AirportProvider(BaseProvider):
             executiondate=self.flight_timestamp(),
             executionplace=self.airport_code(),
             workpackage=self.work_package().workpackageid,
-            kind=self.maintenance_event_kind(),
+            kind=self.work_order_kind(),
         )
 
         return order
@@ -1174,7 +1174,7 @@ class AirportProvider(BaseProvider):
             executiondate=self.flight_timestamp(),
             executionplace=self.airport_code(),
             workpackage=self.work_package().workpackageid,
-            kind=self.maintenance_event_kind(),
+            kind=self.work_order_kind(),
             deadline=deadline,
             planned=planned,
             frequency=self.random_int(max=100),
@@ -1201,7 +1201,7 @@ class AirportProvider(BaseProvider):
             executiondate=self.flight_timestamp(),
             executionplace=self.airport_code(),
             workpackage=self.work_package().workpackageid,
-            kind=self.maintenance_event_kind(),
+            kind=self.work_order_kind(),
             reporteurclass=self.report_kind(),
             reporteurid=self.reporter().reporteurid,
             reportingdate=planned,
@@ -1310,7 +1310,7 @@ class AirportProvider(BaseProvider):
             duration=duration,
             kind=kind,
             flightid=flight_id,  # R12
-            departure=fs.scheduleddeparture.strftime("%d-%m-%Y"),  # R12
+            departure=fs.scheduleddeparture,  # R12
             delaycode=delay_code,  # R13
         )
 
