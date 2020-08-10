@@ -3,22 +3,8 @@ from sqlalchemy.engine.base import Engine
 
 from project.models.classic import aims_meta, amos_meta
 from project.models.declarative import AIMSBase, AMOSBase
+from project.scripts.db_utils import create_all, delete_all
 
-
-def delete_all(engine: Engine):
-    # AIMSBase.metadata.drop_all(engine)
-    # AMOSBase.metadata.drop_all(engine)
-
-    aims_meta.drop_all(engine)
-    amos_meta.drop_all(engine)
-
-
-def create_all(engine: Engine):
-    # AIMSBase.metadata.create_all(engine)
-    # AMOSBase.metadata.create_all(engine)
-
-    aims_meta.create_all(engine)
-    amos_meta.create_all(engine)
 
 
 if __name__ == "__main__":

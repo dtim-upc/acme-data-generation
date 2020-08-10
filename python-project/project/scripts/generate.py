@@ -38,10 +38,10 @@ class AircraftGenerator:
 
         return path
 
-    def to_sql(self):
-        raise NotImplementedError()
+    def to_sql(self, db_url: T.Optional[str]):
 
-    def to_database(self):
+        db_url = db_url or self.config.db_url
+
         raise NotImplementedError()
 
     def populate(self) -> "AircraftGenerator":
@@ -144,21 +144,15 @@ class AircraftGenerator:
         return {k: v for k, v in self.__dict__.items() if isinstance(v, list)}
 
     @property
-    def status(self):
-        return {
-            k: len(v) for k, v in self.__dict__.items() if isinstance(v, list)
-        }
-
-    @property
     def total_instances(self):
-        return sum(v for k, v in self.status.items())
+        return sum(len(v) for k, v in self.state.items())
 
     @property
     def total_entities(self):
-        return sum(1 for _ in self.status.keys())
+        return sum(1 for _ in self.state.keys())
 
     def __str__(self):
-        return "\n".join([f"{k}: {v}" for k, v in self.status.items()])
+        return "\n".join([f"{k}: {len(v)}" for k, v in self.state.items()])
 
 
 if __name__ == "__main__":
