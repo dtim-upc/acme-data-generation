@@ -1,16 +1,18 @@
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.orm import sessionmaker
 
-from project.models.classic import aims_meta, amos_meta
-from project.models.declarative import AIMSBase, AMOSBase
+# from project.models.classic import aims_meta, amos_meta
+# from project.models.declarative import AIMSBase, AMOSBase
+from project.base.config import BaseConfig
 from project.scripts.db_utils import create_all, delete_all
-
+from project.providers import fake
 
 
 if __name__ == "__main__":
-    engine = create_engine(
-        "postgresql://postgres:admin@localhost:54320/postgres", echo=True
-    )
+
+    config = BaseConfig()
+    engine = create_engine(config.db_url, echo=True)
 
     # create session
     delete_all(engine)
@@ -30,3 +32,15 @@ where
 
     for _r in result:
         print(_r)
+
+    # attempt to create an instance using the classical mappings
+    fs = fake.flight_slot()
+
+    # create a configured "Session" class
+    Session = sessionmaker(bind=engine)
+
+    # create a Session
+    session = Session()
+
+    session.add(fs)
+    session.commit()

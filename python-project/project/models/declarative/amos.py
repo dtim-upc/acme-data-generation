@@ -3,7 +3,7 @@
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import INTERVAL, UUID
-from project.models.declarative.mixins import ReprMixin, RowIdMixin
+from project.models.declarative.mixins import UtilsMixin, RowIdMixin
 
 
 __doc__ = """Classes used to populate the AMOS schema. 
@@ -97,7 +97,7 @@ CREATE TABLE "AMOS".Attachments (
 """
 
 
-class AMOSMixin(object):
+class AMOSMixin(UtilsMixin):
     __table_args__ = {"schema": "AMOS"}
 
 
@@ -154,7 +154,7 @@ class MaintenanceEvent(Base, RowIdMixin, MaintenanceEventMixin, AMOSMixin):
     __tablename__ = "maintenanceevents"
 
 
-class OperationInterruption(
+class OperationalInterruption(
     Base, RowIdMixin, MaintenanceEventMixin, AMOSMixin
 ):
     __tablename__ = "operationinterruption"
@@ -182,12 +182,12 @@ class WorkOrderMixin(object):
     @classmethod
     def from_child(cls, obj):
         return cls(
-            obj.workorderid,
-            obj.aircraftregistration,
-            obj.executiondatetime,
-            obj.executionplace,
-            obj.workpackage,
-            obj.kind,
+            workorderid=obj.workorderid,
+            aircraftregistration=obj.aircraftregistration,
+            executiondate=obj.executiondate,
+            executionplace=obj.executionplace,
+            workpackage=obj.workpackage,
+            kind=obj.kind,
         )
 
 

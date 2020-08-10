@@ -9,9 +9,14 @@ class Manufacturer(object):
     aircraft_model: T.Optional[str]
     aircraft_manufacturer: T.Optional[str]
 
+    def as_dict(self):
+        return attr.asdict(self)
+
 
 @attr.s(auto_attribs=True)
 class Reporter(object):
     reporteurid: T.Optional[str]
     airport: T.Optional[str]
 
+    def as_dict(self):
+        return attr.asdict(self)

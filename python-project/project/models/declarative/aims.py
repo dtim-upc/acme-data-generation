@@ -3,8 +3,8 @@ import typing as T
 
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
-from project.models.declarative.mixins import ReprMixin, RowIdMixin
-import attr
+from project.models.declarative.mixins import UtilsMixin, RowIdMixin
+from datetime import datetime, timedelta
 
 Base = declarative_base()
 
@@ -59,7 +59,7 @@ CREATE TABLE "AIMS".Maintenance (
 ) INHERITS ("AIMS".Slots);"""
 
 
-class AIMSMixin(object):
+class AIMSMixin(UtilsMixin):
     __table_args__ = {"schema": "AIMS"}
 
 
@@ -79,35 +79,38 @@ class SlotsMixin(object):
         nullable=False,
     )
 
-class Flight(Base, RowIdMixin, SlotsMixin, AIMSMixin):
-    __tablename__ = "flights"
-
-    flightid = sa.Column("flightid", sa.CHAR(26), nullable=False)
-    departureairport = sa.Column(
-        "departureairport", sa.CHAR(3), nullable=False
-    )
-    arrivalairport = sa.Column("arrivalairport", sa.CHAR(3), nullable=False)
-    actualdeparture = sa.Column("actualdeparture", sa.DateTime)
-    actualarrival = sa.Column("actualarrival", sa.DateTime)
-    cancelled = sa.Column("cancelled", sa.Boolean)
-    delaycode = sa.Column("delaycode", sa.CHAR(2))
-    passengers = sa.Column("passengers", sa.SmallInteger)
-    cabincrew = sa.Column("cabincrew", sa.SmallInteger)
-    flightcrew = sa.Column("flightcrew", sa.SmallInteger)
-
     @classmethod
     def from_child(cls, obj):
         return cls(
-            obj.aircraftregistration,
-            obj.scheduleddeparture,
-            obj.scheduledarrival,
-            obj.kind,
+            aircraftregistration=obj.aircraftregistration,
+            scheduleddeparture=obj.scheduleddeparture,
+            scheduledarrival=obj.scheduledarrival,
+            kind=obj.kind,
         )
 
 
-class Maintenance(Base, RowIdMixin, SlotsMixin, AIMSMixin):
+class FlightSlot(Base, RowIdMixin, SlotsMixin, AIMSMixin):
+    __tablename__ = "flights"
+
+    flightid: str = sa.Column("flightid", sa.CHAR(26), nullable=False)
+    departureairport: str = sa.Column(
+        "departureairport", sa.CHAR(3), nullable=False
+    )
+    arrivalairport: str = sa.Column(
+        "arrivalairport", sa.CHAR(3), nullable=False
+    )
+    actualdeparture: datetime = sa.Column("actualdeparture", sa.DateTime)
+    actualarrival: datetime = sa.Column("actualarrival", sa.DateTime)
+    cancelled: bool = sa.Column("cancelled", sa.Boolean)
+    delaycode: str = sa.Column("delaycode", sa.CHAR(2))
+    passengers: int = sa.Column("passengers", sa.SmallInteger)
+    cabincrew: int = sa.Column("cabincrew", sa.SmallInteger)
+    flightcrew: int = sa.Column("flightcrew", sa.SmallInteger)
+
+
+class MaintenanceSlot(Base, RowIdMixin, SlotsMixin, AIMSMixin):
     __tablename__ = "maintenance"
-    programmed = sa.Column("programmed", sa.Boolean, nullable=False)
+    programmed: bool = sa.Column("programmed", sa.Boolean, nullable=False)
 
 
 class Slot(Base, RowIdMixin, SlotsMixin, AIMSMixin):

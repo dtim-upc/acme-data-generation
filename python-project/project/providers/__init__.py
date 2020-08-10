@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from faker import Faker
 from faker.providers import BaseProvider
 
-from project.models.data import aims, amos
+from project.models.declarative import aims, amos
 from project.models.data.serializable import Manufacturer, Reporter
 
 
@@ -1134,7 +1134,7 @@ class AirportProvider(BaseProvider):
 
         return amos.Workpackage(
             workpackageid=self.random_int(),
-            executiondatetime=self.flight_timestamp(),
+            executiondate=self.flight_timestamp(),
             executionplace=self.airport_code(),
         )
 
@@ -1153,7 +1153,7 @@ class AirportProvider(BaseProvider):
         order = amos.WorkOrder(
             workorderid=self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(),
-            executiondatetime=self.flight_timestamp(),
+            executiondate=self.flight_timestamp(),
             executionplace=self.airport_code(),
             workpackage=self.work_package().workpackageid,
             kind=self.maintenance_event_kind(),
@@ -1171,7 +1171,7 @@ class AirportProvider(BaseProvider):
         order = amos.ForecastedOrder(
             workorderid=custom_id or self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(),
-            executiondatetime=self.flight_timestamp(),
+            executiondate=self.flight_timestamp(),
             executionplace=self.airport_code(),
             workpackage=self.work_package().workpackageid,
             kind=self.maintenance_event_kind(),
@@ -1198,13 +1198,13 @@ class AirportProvider(BaseProvider):
         order = amos.TechnicalLogbookOrder(
             workorderid=custom_id or self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(),
-            executiondatetime=self.flight_timestamp(),
+            executiondate=self.flight_timestamp(),
             executionplace=self.airport_code(),
             workpackage=self.work_package().workpackageid,
             kind=self.maintenance_event_kind(),
             reporteurclass=self.report_kind(),
             reporteurid=self.reporter().reporteurid,
-            reportingdatetime=planned,
+            reportingdate=planned,
             due=deadline,
             deferred=self.generator.pybool(),
             mel=mel,

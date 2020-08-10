@@ -5,12 +5,11 @@ import typing as T
 from pathlib import Path
 from itertools import chain
 
-import attr
 from faker import Faker
 from tqdm import tqdm
 
 from project.base.config import BaseConfig
-from project.models.data import aims, amos
+from project.models.declarative import aims, amos
 from project.providers import fake
 
 
@@ -27,14 +26,14 @@ class AircraftGenerator:
             # creates a dictwriter
             writer = csv.DictWriter(
                 file.open("wt"),
-                fieldnames=attr.asdict(entities[0]).keys(),
+                fieldnames=entities[0].as_dict().keys(),
                 delimiter=",",
             )
 
             writer.writeheader()
 
             for entity in entities:
-                writer.writerow(attr.asdict(entity))
+                writer.writerow(entity.as_dict())
 
         return path
 
