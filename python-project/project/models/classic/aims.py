@@ -7,9 +7,13 @@ from sqlalchemy import (
     Enum,
     MetaData,
     SmallInteger,
+    Integer,
     Table,
 )
 from sqlalchemy import event, DDL
+from sqlalchemy.orm import mapper
+from project.models.data import aims
+
 
 metadata = MetaData()
 
@@ -25,6 +29,7 @@ event.listen(
 t_flights = Table(
     "flights",
     metadata,
+    Column("rowid", Integer, primary_key=True),  # needed by the ORM
     Column("aircraftregistration", CHAR(6), nullable=False),
     Column("scheduleddeparture", DateTime, nullable=False),
     Column("scheduledarrival", DateTime, nullable=False),
@@ -50,6 +55,7 @@ t_flights = Table(
 t_maintenance = Table(
     "maintenance",
     metadata,
+    Column("rowid", Integer, primary_key=True),  # needed by the ORM
     Column("aircraftregistration", CHAR(6), nullable=False),
     Column("scheduleddeparture", DateTime, nullable=False),
     Column("scheduledarrival", DateTime, nullable=False),
@@ -66,6 +72,7 @@ t_maintenance = Table(
 t_slots = Table(
     "slots",
     metadata,
+    Column("rowid", Integer, primary_key=True),  # needed by the ORM
     Column("aircraftregistration", CHAR(6), nullable=False),
     Column("scheduleddeparture", DateTime, nullable=False),
     Column("scheduledarrival", DateTime, nullable=False),
@@ -76,3 +83,14 @@ t_slots = Table(
     ),
     schema="AIMS",
 )
+
+
+# ---------------------------------------------------------------------------- #
+#                                   mappings                                   #
+# ---------------------------------------------------------------------------- #
+
+# see https://docs.sqlalchemy.org/en/13/orm/mapping_styles.html#classical-mappings
+
+t_slots_mapping = mapper(aims.Slot, t_slots)
+t_flights_mapping = mapper(aims.FlightSlot, t_flights)
+t_maintenance = mapper(aims.MaintenanceSlot, t_maintenance)
