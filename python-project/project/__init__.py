@@ -1,11 +1,11 @@
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.orm import sessionmaker
+
 
 # from project.models.classic import aims_meta, amos_meta
 # from project.models.declarative import AIMSBase, AMOSBase
 from project.base.config import BaseConfig
-from project.scripts.db_utils import create_all, delete_all
+from project.scripts.db_utils import create_all, delete_all, get_session
 from project.providers import fake
 
 
@@ -36,11 +36,7 @@ where
     # attempt to create an instance using the classical mappings
     fs = fake.flight_slot()
 
-    # create a configured "Session" class
-    Session = sessionmaker(bind=engine)
-
-    # create a Session
-    session = Session()
+    session = get_session(engine)
 
     session.add(fs)
     session.commit()

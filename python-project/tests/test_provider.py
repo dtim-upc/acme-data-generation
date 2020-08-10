@@ -6,7 +6,7 @@ import re
 """Tests that the airport random generator behaves according to some rules"""
 
 re_aircraftregistration = re.compile(r"XY-[A-Z]{3}")
-re_flightid = re.compile(r"\d{2}-\d{2}-\d{4}-[A-Z]{3}-[A-Z]{3}-\d{4}-XY-[A-Z]{3}")
+re_flightid = re.compile(r"\d{6}-[A-Z]{3}-[A-Z]{3}-\d{4}-XY-[A-Z]{3}")
 re_airport = re.compile(r"[A-Z]{3}")
 re_delaycode = re.compile(r"\d{2}")
 

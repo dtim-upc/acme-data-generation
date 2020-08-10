@@ -1375,7 +1375,7 @@ class AirportProvider(BaseProvider):
         # TODO: this is rule R12
         flight_id: str = "-".join(
             [
-                scheduled_departure.strftime("%d-%m-%Y"),
+                scheduled_departure.strftime("%d%m%y"),
                 orig,
                 dest,
                 flight_number,

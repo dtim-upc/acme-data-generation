@@ -41,6 +41,8 @@ class AircraftGenerator:
 
         db_url = db_url or self.config.db_url
 
+
+
         raise NotImplementedError()
 
     def populate(self) -> "AircraftGenerator":
