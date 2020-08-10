@@ -24,10 +24,10 @@ class BaseConfig:
     # ---------------------------------------------------------------------------- #
 
     size: int = 1000  # base size
-    flight_slots_size: int = size
-    maintenance_slots_size: int = size
-    tlb_orders_size: int = size
-    forecasted_orders_size: int = size
+    flight_slots_size: int = None
+    maintenance_slots_size: int = None
+    tlb_orders_size: int = None
+    forecasted_orders_size: int = None
     # ois_events_size is controlled by flight_slots_size
     # maintenance_events_size is controlled by maintenance_slots_size
     max_attch_size: int = 1
@@ -54,4 +54,17 @@ class BaseConfig:
     # ---------------------------------------------------------------------------- #
 
     db_url: str = "postgresql://postgres:admin@localhost:54320/postgres"
-    
+
+    # https://www.attrs.org/en/stable/examples.html?highlight=attrs_post_init#other-goodies
+    def __attrs_post_init__(self):
+        
+        # if user did not set custom sizes, then attempt to make them all of 
+        # them equal to some custom size
+        if self.flight_slots_size is None:
+            self.flight_slots_size = self.size
+        if self.maintenance_slots_size is None:
+            self.maintenance_slots_size = self.size
+        if self.tlb_orders_size is None:
+            self.tlb_orders_size = self.size
+        if self.forecasted_orders_size is None:
+            self.forecasted_orders_size = self.size
