@@ -2,15 +2,17 @@ import csv
 import logging
 import random
 import typing as T
-from pathlib import Path
 from itertools import chain
+from pathlib import Path
 
 from faker import Faker
+from sqlalchemy import create_engine
 from tqdm import tqdm
 
 from project.base.config import BaseConfig
 from project.models.declarative import aims, amos
 from project.providers import fake
+from project.scripts.db_utils import get_session
 
 
 class AircraftGenerator:
@@ -20,7 +22,8 @@ class AircraftGenerator:
 
     def to_csv(self, path: Path) -> Path:
 
-        for tablename, entities in self.state.items():
+        logging.info("Writing instances to CSV files")
+        for tablename, entities in tqdm(self.state.items(), unit="file"):
             file = path.joinpath(f"{tablename}.csv")
 
             # creates a dictwriter
@@ -35,15 +38,19 @@ class AircraftGenerator:
             for entity in entities:
                 writer.writerow(entity.as_dict())
 
+        logging.info("Done")
         return path
 
-    def to_sql(self, db_url: T.Optional[str]):
+    def to_sql(self, session, db_url: T.Optional[str] = None):
 
-        db_url = db_url or self.config.db_url
-
-
-
-        raise NotImplementedError()
+        logging.info("Inserting instances to DB tables")
+        for k, v in tqdm(self.state.items(), unit="table"):
+            for instance in v:
+                # if it has a _mapper_ attribute then it is a sqlalchemy mapped class
+                if getattr(instance, "__mapper__", False):
+                    session.add(instance)
+        session.commit()
+        logging.info("Done")
 
     def populate(self) -> "AircraftGenerator":
 
@@ -116,13 +123,13 @@ class AircraftGenerator:
             # we don't want nested lists
             self.attachments.extend(event_attachments)
 
-        logging.info(f"Generating technical logbook orders")
+        logging.info("Generating technical logbook orders")
         self.tlb_orders = [
             fake.technical_logbook_order(max_id=self.config.tlb_orders_size)
             for _ in tqdm(range(self.config.tlb_orders_size))
         ]
 
-        logging.info(f"Generating forecasted orders")
+        logging.info("Generating forecasted orders")
         self.forecasted_orders = [
             fake.forecasted_order(
                 max_id=self.config.size
@@ -130,14 +137,14 @@ class AircraftGenerator:
             for _ in tqdm(range(self.config.forecasted_orders_size))
         ]
 
-        logging.debug(f"Generating work orders")
+        logging.debug("Generating work orders")
 
         self.workorders = [
             amos.WorkOrder.from_child(obj)
             for obj in chain(self.tlb_orders, self.forecasted_orders)
         ]
 
-        logging.info(f"Done")
+        logging.info("Done")
         return self
 
     @property
@@ -154,17 +161,3 @@ class AircraftGenerator:
 
     def __str__(self):
         return "\n".join([f"{k}: {len(v)}" for k, v in self.state.items()])
-
-
-if __name__ == "__main__":
-
-    logging.basicConfig(level=logging.INFO)  # use root logger
-    config = BaseConfig(size=10)
-    Faker.seed(config.seed)
-    random.seed(config.seed)
-
-    g = AircraftGenerator(config=config)
-    g.populate()
-    g.to_csv(path=Path(__file__).parent.parent.parent.joinpath("out"))
-
-    print("Done")
