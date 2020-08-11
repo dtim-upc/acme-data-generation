@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import INTERVAL, UUID
 from sqlalchemy.orm import mapper
 from project.models.data import amos
 
+# these classes are not used, DO NOT IMPORT metadata
 
 metadata = MetaData()
 

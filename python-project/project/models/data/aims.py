@@ -3,6 +3,8 @@ from faker import Faker
 from datetime import datetime
 import attr
 
+# these classes are not used
+
 
 @attr.s(auto_attribs=True)
 class Slot(object):

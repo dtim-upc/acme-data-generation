@@ -14,6 +14,7 @@ from sqlalchemy import event, DDL
 from sqlalchemy.orm import mapper
 from project.models.data import aims
 
+# these classes are not used, DO NOT IMPORT metadata!
 
 metadata = MetaData()
 

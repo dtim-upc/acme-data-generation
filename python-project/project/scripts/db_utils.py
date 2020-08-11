@@ -2,7 +2,6 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import sessionmaker
 
-# from project.models.classic import aims_meta, amos_meta
 from project.models.declarative import AIMSBase, AMOSBase
 
 
