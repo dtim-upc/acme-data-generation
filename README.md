@@ -66,10 +66,21 @@ The library uses a `BaseConfig` class with more settings that can be overriden.
 
 ## Testing
 
-run `pytest tests/`. 
+run `pytest tests/`.
 
 ### Caveats
 
 1. Some tests require an alive database named `testdb`, at the same postgres address that the one being used by the `airbase-gen sql` command.
-2. This database is provided automatically using the docker postgres instance. 
+2. This database is provided automatically using the docker postgres instance.
 3. Some tests are not implemented and others are not passing as of 0.9
+
+## Other goodies
+
+1. `pipenv install --dev`
+2. `make coverage` to run tests with coverage
+
+   > poor man's badge: test coverage 77%
+
+3. `make memprofile.generate` to produce a memory usage profile
+
+   > poor man's badge: memory consumption: 21.1[MB]@1000[rows].
