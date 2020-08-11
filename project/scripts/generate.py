@@ -22,6 +22,9 @@ class AircraftGenerator:
 
     def to_csv(self, path: Path) -> Path:
 
+        # create path if not exists
+        path.mkdir(exist_ok=True)
+
         logging.info("Writing instances to CSV files")
         for tablename, entities in tqdm(self.state.items(), unit="file"):
             file = path.joinpath(f"{tablename}.csv")
@@ -81,11 +84,11 @@ class AircraftGenerator:
             )
             self.maintenance_slots.append(slot)
 
-        logging.debug("Generating slots")
+        logging.info("Generating slots")
         # https://stackoverflow.com/a/56735440/5819113
         self.slots = [
             aims.Slot.from_child(obj)
-            for obj in chain(self.flight_slots, self.maintenance_slots)
+            for obj in tqdm(chain(self.flight_slots, self.maintenance_slots))
         ]
 
         self.operational_interruptions = []
@@ -137,11 +140,11 @@ class AircraftGenerator:
             for _ in tqdm(range(self.config.forecasted_orders_size))
         ]
 
-        logging.debug("Generating work orders")
+        logging.info("Generating work orders")
 
         self.workorders = [
             amos.WorkOrder.from_child(obj)
-            for obj in chain(self.tlb_orders, self.forecasted_orders)
+            for obj in tqdm(chain(self.tlb_orders, self.forecasted_orders))
         ]
 
         logging.info("Done")

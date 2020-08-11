@@ -24,11 +24,6 @@ default_output_path = basepath.parent.joinpath("out")
 # ---------------------------------------------------------------------------- #
 
 
-def print_help(args):
-    args.help()
-
-
-# sub-command functions
 def to_csv(args):
 
     config = BaseConfig(size=args.rows)
@@ -158,6 +153,7 @@ def cli():
         args.func(args)
     else:
         base_parser.print_help()
+
 
 if __name__ == "__main__":
     cli()
