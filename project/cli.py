@@ -23,6 +23,11 @@ default_output_path = basepath.parent.joinpath("out")
 #                               command handling                               #
 # ---------------------------------------------------------------------------- #
 
+
+def print_help(args):
+    args.help()
+
+
 # sub-command functions
 def to_csv(args):
 
@@ -74,13 +79,14 @@ def to_sql(args):
     ag.populate()
     ag.to_sql(session)
 
+
 # ---------------------------------------------------------------------------- #
 #                                argparse begin                                #
 # ---------------------------------------------------------------------------- #
 
 
 base_parser = argparse.ArgumentParser(
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter, add_help=True
 )
 
 # ---------------------------------------------------------------------------- #
@@ -135,9 +141,7 @@ sql_parser.add_argument(
 sql_parser.add_argument(
     "--db-pwd", help="database password", default="admin", type=str,
 )
-sql_parser.add_argument(
-    "--db-host", help="database host", default="0.0.0.0", type=str
-)
+sql_parser.add_argument("--db-host", help="database host", default="0.0.0.0", type=str)
 sql_parser.add_argument(
     "--db-port",
     help="database port. The default is 54320, set by docker-compose",
@@ -148,7 +152,12 @@ sql_parser.add_argument(
 sql_parser.set_defaults(func=to_sql)
 
 
-if __name__ == "__main__":
-
+def cli():
     args = base_parser.parse_args()
-    args.func(args)
+    if hasattr(args, "func"):
+        args.func(args)
+    else:
+        base_parser.print_help()
+
+if __name__ == "__main__":
+    cli()

@@ -19,4 +19,9 @@ setup(
         "Programming Language :: Python :: 3.8",
     ],
     py_modules=["project"],
+    entry_points='''
+        [console_scripts]
+        airbase-gen=project.cli:cli
+    ''',
+
 )
