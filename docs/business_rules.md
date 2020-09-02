@@ -1,12 +1,10 @@
 # Business rules
 
-Below are listed the business rules that one would expect to be true in the data. Nevertheless, neither
-the processes nor the DBMS enforced them. Thus, they may have been violated giving rise to quality
-problems.
+Below are listed the business rules that one would expect to be true in the data. Nevertheless, neither the processes nor the DBMS enforced them. Thus, they may have been violated giving rise to quality problems.
 
 ## Notes
 
-- The number of the rules are meant to be set in stone, where the number has no particular meaning and it is used to reference to rules in the code.
+- The identifiers at the beginning of the rules are meant to be set in stone. This number has no particular meaning and it is only used to reference to rules in the code.
 - A checked checkbox means that the rule has been tested
 
 ## AMOS database

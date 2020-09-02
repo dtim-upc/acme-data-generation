@@ -84,3 +84,10 @@ run `pytest tests/`.
 3. `make memprofile.generate` to produce a memory usage profile
 
    > poor man's badge: memory consumption: 21.1[MB]@1000[rows].
+
+## Business rules enforcement
+
+Data generated with this program should
+
+- Enforce specific business rules, defined by unique identifiers. Read more about these in [business_rules](docs/business_rules.md)
+- Provide a deterministic way to produce random, noisy data that breaks these business rules.
