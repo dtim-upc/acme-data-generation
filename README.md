@@ -91,3 +91,7 @@ Data generated with this program should
 
 - Enforce specific business rules, defined by unique identifiers. Read more about these in [business_rules](docs/business_rules.md)
 - Provide a deterministic way to produce random, noisy data that breaks these business rules.
+
+## Rationale
+
+You can read more about how this generator was developed here in [rationale](docs/rationale.md)

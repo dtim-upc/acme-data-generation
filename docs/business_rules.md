@@ -74,4 +74,4 @@ Below are listed the business rules that one would expect to be true in the data
 
 These refer to any requirement related to control the data generation process.
 
-- [ ] **C1**: Users can select how many rows they wish
+- [x] **C1**: Users can select how many rows they wish

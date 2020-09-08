@@ -1,0 +1,5 @@
+digraph "classes" {
+charset="utf-8"
+rankdir=BT
+"0" [label="{AircraftGenerator|attachments : list\lconfig\lflight_slots : list\lforecasted_orders\lmaintenance_events : list\lmaintenance_slots : list\lmanufacturers\loperational_interruptions : list\lslots : list\lstate\ltlb_orders\ltotal_entities\ltotal_instances\lworkorders\l|populate()\lto_csv(path)\lto_sql(session, db_url)\l}", shape="record"];
+}
