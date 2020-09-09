@@ -1,6 +1,9 @@
 import typing as T
 from collections import OrderedDict
 from datetime import datetime, timedelta
+import random
+from string import ascii_letters, digits, punctuation, ascii_uppercase
+import math
 
 from faker import Faker
 from faker.providers import BaseProvider
@@ -10,6 +13,36 @@ from project.models.data.serializable import Manufacturer, Reporter
 
 
 class AirportProvider(BaseProvider):
+    def random_string(
+        self,
+        str_size: int = 5,
+        allowed_chars: str = ascii_letters + punctuation + digits,
+    ):
+        # https://www.askpython.com/python/examples/generate-random-strings-in-python
+        return "".join(
+            random.SystemRandom().choice(allowed_chars) for x in range(str_size)
+        )
+
+    def _make_noisy(self, string: str) -> str:
+        """Introduces noise in strings at random
+        By alters the case of strings at random, 
+        introduces trailing whitespace
+        
+        >>> _make_noisy("acme")                                                                                                                                                                    
+        '   ACmE'
+
+        >>> _make_noisy("acme")                                                                                                                                                                    
+        '     Acme'
+
+        """
+        altered_case = (
+            char.upper() if self.generator.pybool() else char.lower() for char in string
+        )
+
+        leading_whitespace = " " * self.random_int(0, 5)
+        trailing_whitespace = " " * self.random_int(0, 5)
+
+        return leading_whitespace + "".join(altered_case) + trailing_whitespace
 
     _airport_codes: T.List[str] = [
         "TIA",
@@ -956,51 +989,136 @@ class AirportProvider(BaseProvider):
         "Boeing",
     ]
 
-    def airport_code(self) -> str:
-        return self.random_element(self._airport_codes)
+    def _quality_dispatcher(self, mapping, quality):
 
-    def delay_code(self) -> str:
-        return self.random_element(self._delay_codes)
+        if quality not in ("good", "bad", "noisy"):
+            raise ValueError('quality must be either "good", "bad" or "noisy"')
 
-    def slot_kind(self) -> str:
-        return self.random_element(self._slot_kinds)
+        if mapping.get("noisy") is None:
+            mapping["noisy"] = self._make_noisy(mapping["good"])
+        return mapping[quality]
 
-    def maintenance_event_kind(self) -> str:
-        return self.random_element(self._maintenance_event_kinds)
+    def quality_mask(self, size: int, dist: T.List = [0.7, 0.1, 0.2]):
+        """produces a mask of quality values of a given size
 
-    def ata_code(self) -> str:
-        return self.random_element(self._ata_codes)
+        using a distribution of good/noisy/bad quality
 
-    def work_order_kind(self) -> str:
-        return self.random_element(self._work_order_kinds)
+        :param size: [description]
+        :type size: int
+        :param dist: distribution of good/noisy/bad quality values
+        :type dist: T.List
+        """
 
-    def frequency_units_kind(self) -> str:
-        return self.random_element(self._frequency_units_kinds)
+        if sum(dist) != 1:
+            raise ValueError("dist values must add up to 1")
 
-    def mel_category_kind(self) -> str:
-        return self.random_element(self._mel_category_kinds)
+        good_size = math.ceil(dist[0] * size)
+        noisy_size = math.ceil(dist[1] * size)
+        bad_size = math.ceil(dist[2] * size)
 
-    def report_kind(self) -> str:
-        return self.random_element(self._report_kinds)
+        mask = ["good"] * good_size + ["noisy"] * noisy_size + ["bad"] * bad_size
 
-    def aircraft_model(self) -> str:
-        return self.random_element(self._aircraft_models)
+        random.shuffle(mask)
+        return mask[:size]  # in case there are more elements
 
-    def aircraft_manufacturer(self) -> str:
-        return self.random_element(self._aircraft_manufacturers)
+    def random_quality(self, weights=None):
+        """wraps random.choices inside the generator"""
+        choices = ["good", "noisy", "bad"]
+        return random.choices(choices, weights=weights, k=1)[0]
+
+    def airport_code(self, quality: str = "good") -> str:
+        mapping = {
+            "bad": self.bothify("#??"),  # e.g. 3Ws, 1fR
+            "good": self.random_element(self._airport_codes),
+        }
+
+        return self._quality_dispatcher(mapping, quality)
+
+    def delay_code(self, quality: str = "good") -> str:
+        mapping = {
+            "bad": self.bothify("###"),  # e.g. 123, 999
+            "good": self.random_element(self._delay_codes),
+        }
+
+        return self._quality_dispatcher(mapping, quality)
+
+    def slot_kind(self, quality: str = "good") -> str:
+        mapping = {
+            "bad": self.bothify("###"),  # e.g. 123, 999
+            "good": self.random_element(self._slot_kinds),
+        }
+
+        return self._quality_dispatcher(mapping, quality)
+
+    def maintenance_event_kind(self, quality: str = "good") -> str:
+        mapping = {
+            "good": self.random_element(self._maintenance_event_kinds),
+            "bad": self.random_string(),
+        }
+        return self._quality_dispatcher(mapping, quality)
+
+    def ata_code(self, quality: str = "good") -> str:
+        mapping = {
+            "good": self.random_element(self._ata_codes),
+            "bad": self.random_string(4),
+        }
+        return self._quality_dispatcher(mapping, quality)
+
+    def work_order_kind(self, quality: str = "good") -> str:
+        mapping = {
+            "good": self.random_element(self._work_order_kinds),
+            "bad": self.random_string(random.randint(5, 10)),
+        }
+        return self._quality_dispatcher(mapping, quality)
+
+    def frequency_units_kind(self, quality: str = "good") -> str:
+        mapping = {
+            "good": self.random_element(self._frequency_units_kinds),
+            "bad": self.random_string(random.randint(2, 5)),
+        }
+        return self._quality_dispatcher(mapping, quality)
+
+    def mel_category_kind(self, quality: str = "good") -> str:
+        mapping = {
+            "good": self.random_element(self._mel_category_kinds),
+            "bad": self.random_string(random.randint(5, 10)),
+        }
+        return self._quality_dispatcher(mapping, quality)
+
+    def report_kind(self, quality: str = "good") -> str:
+        mapping = {
+            "good": self.random_element(self._report_kinds),
+            "bad": self.random_string(5, ascii_uppercase),
+        }
+        return self._quality_dispatcher(mapping, quality)
+
+    def aircraft_model(self, quality: str = "good") -> str:
+        mapping = {
+            "good": self.random_element(self._aircraft_models),
+            "bad": self.random_string(random.randint(5, 14)),
+        }
+        return self._quality_dispatcher(mapping, quality)
+
+    def aircraft_manufacturer(self, quality: str = "good") -> str:
+        mapping = {"good": self.random_element(self._aircraft_manufacturers)}
+        return self._quality_dispatcher(mapping, quality)
 
     def flight_route(self) -> T.List[str]:
         return self.random_elements(self._airport_codes, unique=True, length=2)
 
-    def flight_number(self) -> str:
+    def flight_number(self, quality="good") -> str:
         """Returns a random flight number between 1000 and 9999
 
         Returns:
             str: flight number, as a string
         """
-        return self.numerify("%%%%")
+        mapping = {
+            "good": self.numerify("%%%%"),
+            "bad": self.random_string(4, digits + ascii_letters),
+        }
+        return self._quality_dispatcher(mapping, quality)
 
-    def flight_timestamp(self) -> datetime:
+    def flight_timestamp(self, quality="good") -> datetime:
         """produces random timestamp between two dates
 
         Note: these dates are hardcoded in the provider.
@@ -1008,30 +1126,66 @@ class AirportProvider(BaseProvider):
         Returns:
             datetime: a random datetime object
         """
-        return self.generator.date_time_between_dates(
-            self._offset_timestamp, self._end_timestamp
+        mapping = {
+            "good": self.generator.date_time_between_dates(
+                self._offset_timestamp, self._end_timestamp
+            ),
+        }
+
+        # we add or substract 50-500 years at random
+        random_timedelta = self.random_element([-1, 1]) * timedelta(
+            days=random.randint(50 * 365, 100 * 365)
         )
+        mapping["bad"] = mapping["good"] + random_timedelta
 
-    def aircraft_registration_code(self, prefix: str = None) -> str:
-        register_prefix = prefix or self._register_prefix
-        return register_prefix + self.lexify(
-            text=f"???", letters=self._alphabet
-        )
+        # TODO: implement this. can't think of anything now
+        mapping["noisy"] = mapping["good"]
 
-    def fleet(self, fleet_size: int) -> T.List[str]:
-        return [self.aircraft_registration_code() for _ in range(fleet_size)]
+        return self._quality_dispatcher(mapping, quality)
 
-    def manufacturer_serial_number(self) -> str:
-        return self.numerify(text="MSN %%%%")
+    def aircraft_registration_code(
+        self, prefix: str = None, quality: str = "good"
+    ) -> str:
+        register_prefix: str = prefix or self._register_prefix
 
-    def maintenance_id(self, max_id: int = 999) -> str:
+        mapping = {
+            "good": register_prefix + self.lexify(text=f"???", letters=self._alphabet),
+            "bad": self.random_string(6, digits + ascii_letters),
+        }
+
+        return self._quality_dispatcher(mapping, quality)
+
+    def fleet(self, fleet_size: int, quality: str = "good") -> T.List[str]:
+        return [
+            self.aircraft_registration_code(quality=quality) for _ in range(fleet_size)
+        ]
+
+    def manufacturer_serial_number(self, quality="good") -> str:
+
+        mapping = {
+            "good": self.numerify(text="MSN %%%%"),
+            "bad": self.random_string(random.randint(2, 3), ascii_uppercase)
+            + " "
+            + self.random_string(random.randint(3, 6), digits + punctuation),
+        }
+
+        return self._quality_dispatcher(mapping, quality)
+
+    def maintenance_id(self, max_id: int = 999, quality="good") -> str:
         # TODO: This is rule R3
-        return "_".join(
+        mid = "_".join(
             [
                 str(self.random_int(max=max_id)),
                 str(self.flight_timestamp() + self.interruption_duration()),
             ]
         )
+
+        mapping = {
+            "good": mid,
+            "bad": self.random_string(6, digits + ascii_letters),
+        }
+
+        return self._quality_dispatcher(mapping, quality)
 
     def duration(
         self, max_days: int = 31, max_hours: int = 23, max_minutes: int = 59
@@ -1044,9 +1198,7 @@ class AirportProvider(BaseProvider):
         )
 
     def interruption_duration(
-        self,
-        interruption_type: T.Optional[str] = None,
-        return_type: bool = False,
+        self, interruption_type: T.Optional[str] = None, return_type: bool = False,
     ) -> T.Union[timedelta, T.Tuple[str, timedelta]]:
         """Returns a time interval specific to some interruption type. 
 
@@ -1102,20 +1254,20 @@ class AirportProvider(BaseProvider):
     #                                    to csv                                    #
     # ---------------------------------------------------------------------------- #
 
-    def manufacturer(self) -> Manufacturer:
+    def manufacturer(self, quality="good") -> Manufacturer:
         """Returns a random instance of Manufacturer
 
         Returns:
             Manufacturer: A random instance of Manufacturer
         """
         return Manufacturer(
-            aircraft_reg_code=self.aircraft_registration_code(),
-            manufacturer_serial_number=self.manufacturer_serial_number(),
-            aircraft_model=self.aircraft_model(),
-            aircraft_manufacturer=self.aircraft_manufacturer(),
+            aircraft_reg_code=self.aircraft_registration_code(quality=quality),
+            manufacturer_serial_number=self.manufacturer_serial_number(quality=quality),
+            aircraft_model=self.aircraft_model(quality=quality),
+            aircraft_manufacturer=self.aircraft_manufacturer(quality=quality),
         )
 
-    def reporter(self) -> Reporter:
+    def reporter(self, quality="good") -> Reporter:
         """Returns an instance of a Reporter with random attributes
 
         :return: a Reporter instance
@@ -1123,19 +1275,19 @@ class AirportProvider(BaseProvider):
         """
 
         return Reporter(
-            reporteurid=self.random_int(), airport=self.airport_code(),
+            reporteurid=self.random_int(), airport=self.airport_code(quality=quality)
         )
 
     # ---------------------------------------------------------------------------- #
     #                                     AMOS                                     #
     # ---------------------------------------------------------------------------- #
 
-    def work_package(self) -> amos.Workpackage:
+    def work_package(self, quality: str = "good") -> amos.Workpackage:
 
         return amos.Workpackage(
             workpackageid=self.random_int(),
-            executiondate=self.flight_timestamp(),
-            executionplace=self.airport_code(),
+            executiondate=self.flight_timestamp(quality=quality),
+            executionplace=self.airport_code(quality=quality),
         )
 
     def attachment(
@@ -1162,48 +1314,54 @@ class AirportProvider(BaseProvider):
         return order
 
     def forecasted_order(
-        self, max_id: int = 9999, custom_id: T.Optional[int] = None
+        self,
+        max_id: int = 9999,
+        custom_id: T.Optional[int] = None,
+        quality: str = "good",
     ) -> amos.ForecastedOrder:
 
-        planned = self.flight_timestamp()
+        planned = self.flight_timestamp(quality=quality)
         deadline = planned + self.interruption_duration()
 
         order = amos.ForecastedOrder(
             workorderid=custom_id or self.random_int(max=max_id),
-            aircraftregistration=self.aircraft_registration_code(),
-            executiondate=self.flight_timestamp(),
-            executionplace=self.airport_code(),
-            workpackage=self.work_package().workpackageid,
-            kind=self.work_order_kind(),
+            aircraftregistration=self.aircraft_registration_code(quality=quality),
+            executiondate=self.flight_timestamp(quality=quality),
+            executionplace=self.airport_code(quality=quality),
+            workpackage=self.work_package(quality=quality).workpackageid,
+            kind=self.work_order_kind(quality=quality),
             deadline=deadline,
             planned=planned,
             frequency=self.random_int(max=100),
-            frequencyunits=self.frequency_units_kind(),
+            frequencyunits=self.frequency_units_kind(quality=quality),
             forecastedmanhours=self.random_int(max=20),
         )
 
         return order
 
     def technical_logbook_order(
-        self, max_id: int = 9999, custom_id: T.Optional[int] = None
+        self,
+        max_id: int = 9999,
+        custom_id: T.Optional[int] = None,
+        quality: str = "good",
     ) -> amos.TechnicalLogbookOrder:
 
         # R10: MELCathegory values A,B,C,D refer to 3,10,30,120 days of allowed delay in the
         # repairing of the problem in the aircraft, respectively.
 
-        mel = self.mel_category_kind()
-        planned = self.flight_timestamp()
+        mel = self.mel_category_kind(quality=quality)
+        planned = self.flight_timestamp(quality=quality)
         deadline = planned + self.reporting_deadline_duration(mel_type=mel)
 
         order = amos.TechnicalLogbookOrder(
             workorderid=custom_id or self.random_int(max=max_id),
-            aircraftregistration=self.aircraft_registration_code(),
-            executiondate=self.flight_timestamp(),
-            executionplace=self.airport_code(),
-            workpackage=self.work_package().workpackageid,
-            kind=self.work_order_kind(),
-            reporteurclass=self.report_kind(),
-            reporteurid=self.reporter().reporteurid,
+            aircraftregistration=self.aircraft_registration_code(quality=quality),
+            executiondate=self.flight_timestamp(quality=quality),
+            executionplace=self.airport_code(quality=quality),
+            workpackage=self.work_package(quality=quality).workpackageid,
+            kind=self.work_order_kind(quality=quality),
+            reporteurclass=self.report_kind(quality=quality),
+            reporteurid=self.reporter(quality=quality).reporteurid,
             reportingdate=planned,
             due=deadline,
             deferred=self.generator.pybool(),
@@ -1217,6 +1375,7 @@ class AirportProvider(BaseProvider):
         max_id: int = 9999,
         maintenance_slot: T.Optional[aims.MaintenanceSlot] = None,
         kind: T.Optional[str] = None,
+        quality: str = "good",
     ) -> amos.MaintenanceEvent:
         """produces a random maintenance event
 
@@ -1242,8 +1401,8 @@ class AirportProvider(BaseProvider):
         # events ready, then I have to check all of them for overlaps
 
         # start off with a random maintenance_slot instance
-        ms = maintenance_slot or self.maintenance_slot()
-        kind = kind or self.maintenance_event_kind()
+        ms = maintenance_slot or self.maintenance_slot(quality=quality)
+        kind = kind or self.maintenance_event_kind(quality=quality)
 
         if kind == "Revision":
             # if the maintenance is a revision, then the maintenance duration
@@ -1256,10 +1415,7 @@ class AirportProvider(BaseProvider):
             duration = self.interruption_duration(interruption_type=kind)
 
         maintenance_id = "_".join(
-            [
-                str(self.random_int(max=max_id)),
-                str(ms.scheduleddeparture + duration),
-            ]
+            [str(self.random_int(max=max_id)), str(ms.scheduleddeparture + duration),]
         )
 
         return amos.MaintenanceEvent(
@@ -1276,6 +1432,7 @@ class AirportProvider(BaseProvider):
         self,
         max_id: int = 9999,
         flight_slot: T.Optional[aims.FlightSlot] = None,
+        quality="good",
     ) -> amos.OperationalInterruption:
         """produces a random operational interruption
 
@@ -1288,10 +1445,10 @@ class AirportProvider(BaseProvider):
 
         # the implementation is the same as maintenanceevent,
         # but here we need to bind it to a flight
-        fs = flight_slot or self.flight_slot()
+        fs = flight_slot or self.flight_slot(quality=quality)
 
         starttime = fs.scheduleddeparture
-        kind = self.maintenance_event_kind()
+        kind = self.maintenance_event_kind(quality=quality)
         duration = self.interruption_duration(interruption_type=kind)
         maintenance_id = "_".join(
             [str(self.random_int(max=max_id)), str(starttime + duration)]
@@ -1301,7 +1458,7 @@ class AirportProvider(BaseProvider):
         flight_id = fs.flightid
         delay_code = fs.delaycode
 
-        return amos.OperationalInterruption(
+        oi = amos.OperationalInterruption(
             maintenanceid=maintenance_id,
             aircraftregistration=fs.aircraftregistration,
             airport=fs.departureairport,  # R11: Airport must have a value
@@ -1313,6 +1470,8 @@ class AirportProvider(BaseProvider):
             departure=fs.scheduleddeparture,  # R12
             delaycode=delay_code,  # R13
         )
+
+        return oi
 
     # ---------------------------------------------------------------------------- #
     #                                     AIMS                                     #
@@ -1327,6 +1486,7 @@ class AirportProvider(BaseProvider):
         cancelled = kwargs.pop("cancelled", None)
         config = kwargs.pop("config", {})
         manufacturer = kwargs.pop("manufacturer", None)
+        quality = kwargs.pop("quality", "good")
 
         # TODO: remove these defaults and expose them at a higher level
         max_duration: int = config.get("max_duration", 5)
@@ -1341,17 +1501,17 @@ class AirportProvider(BaseProvider):
         orig: str = route[0]
         dest: str = route[1]
 
-        flight_number: str = self.flight_number()
+        flight_number: str = self.flight_number(quality=quality)
         passengers: int = self.random_int(min=min_pas, max=max_pas)
         cabin_crew: int = self.random_int(min=min_ccrew, max=max_ccrew)
         flight_crew: int = self.random_int(min=min_fcrew, max=max_fcrew)
-        scheduled_departure: datetime = self.flight_timestamp()
+        scheduled_departure: datetime = self.flight_timestamp(quality=quality)
         scheduled_arrival: datetime = scheduled_departure + self.duration(
             max_minutes=max_duration
         )
         aircraft_registration: str = getattr(
             manufacturer, "aircraft_reg_code", None
-        ) or self.aircraft_registration_code()
+        ) or self.aircraft_registration_code(quality=quality)
 
         if cancelled is None:
             cancelled = self.generator.pybool()
@@ -1364,7 +1524,7 @@ class AirportProvider(BaseProvider):
             actual_departure = None
         else:
             delay = self.interruption_duration(interruption_type="Delay")
-            delay_code = self.delay_code()
+            delay_code = self.delay_code(quality=quality)
             actual_departure = scheduled_departure + delay
             actual_arrival = scheduled_arrival + delay
 
@@ -1405,15 +1565,16 @@ class AirportProvider(BaseProvider):
         # kwargs unpacking
         config = kwargs.pop("config", {})
         manufacturer = kwargs.pop("manufacturer", None)
+        quality = kwargs.pop("quality", "good")
 
         # TODO: remove these defaults and expose them at a higher level
         max_duration: int = config.get("max_duration", 5)
 
         aircraft_registration: str = getattr(
             manufacturer, "aircraft_reg_code", None
-        ) or self.aircraft_registration_code()
+        ) or self.aircraft_registration_code(quality=quality)
 
-        scheduled_departure: datetime = self.flight_timestamp()
+        scheduled_departure: datetime = self.flight_timestamp(quality=quality)
         scheduled_arrival: datetime = scheduled_departure + self.duration(
             max_minutes=max_duration
         )
@@ -1427,7 +1588,7 @@ class AirportProvider(BaseProvider):
         )
 
     def random_slot(
-        self, prob_flight_slot: float = 0.5
+        self, prob_flight_slot: float = 0.5, quality: str = "good"
     ) -> T.Union[aims.FlightSlot, aims.MaintenanceSlot]:
         """returns an instance of FlightSlot or MaintenanceSlot using weighted probabilities
 
@@ -1455,10 +1616,10 @@ class AirportProvider(BaseProvider):
         )[0]
         # random elements returns a list
 
-        return selection()
+        return selection(quality=quality)
 
     def random_work_order(
-        self, prob_tlb: float = 0.5
+        self, prob_tlb: float = 0.5, quality: str = "good"
     ) -> T.Union[amos.TechnicalLogbookOrder, amos.ForecastedOrder]:
         """returns an instance of TechnicalLogbookOrder or ForecastedOrder using weighted probabilities
 
@@ -1486,7 +1647,7 @@ class AirportProvider(BaseProvider):
         )[0]
         # random elements returns a list
 
-        return selection()
+        return selection(quality=quality)
 
 
 fake = Faker()

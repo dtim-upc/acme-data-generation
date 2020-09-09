@@ -9,7 +9,7 @@ import attr
 
 def check_probability(instance, attribute, value):
     # see https://www.attrs.org/en/stable/examples.html#validators
-    if not (0 < value < 1):
+    if not (0 <= value <= 1):
         raise ValueError("probability must be a float in range [0,1]")
 
 
@@ -50,6 +50,14 @@ class BaseConfig:
     prob_tlb: float = attr.ib(0.5, validator=check_probability)
 
     # ---------------------------------------------------------------------------- #
+    #                              randomness controls                             #
+    # ---------------------------------------------------------------------------- #
+
+    prob_good: float = attr.ib(1.0, validator=check_probability)
+    prob_noisy: float = attr.ib(0.0, validator=check_probability)
+    prob_bad: float = attr.ib(0.0, validator=check_probability)
+
+    # ---------------------------------------------------------------------------- #
     #                              database parameters                             #
     # ---------------------------------------------------------------------------- #
 
@@ -57,8 +65,8 @@ class BaseConfig:
 
     # https://www.attrs.org/en/stable/examples.html?highlight=attrs_post_init#other-goodies
     def __attrs_post_init__(self):
-        
-        # if user did not set custom sizes, then attempt to make them all of 
+
+        # if user did not set custom sizes, then attempt to make them all of
         # them equal to some custom size
         if self.flight_slots_size is None:
             self.flight_slots_size = self.size
@@ -68,3 +76,5 @@ class BaseConfig:
             self.tlb_orders_size = self.size
         if self.forecasted_orders_size is None:
             self.forecasted_orders_size = self.size
+
+        self._prob_weights = [self.prob_good, self.prob_noisy, self.prob_bad]

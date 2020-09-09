@@ -110,4 +110,3 @@ def test_totals(custom_size):
 
     assert ag.total_entities == 10
     assert ag.total_instances == total_instances
-

@@ -50,3 +50,20 @@ def test_non_cancelled_flight(fake, config):
     data = fake.flight_slot(cancelled=False)
     assert data.actualdeparture < data.actualarrival
     assert re_delaycode.search(data.delaycode)
+
+
+@pytest.mark.skip("not implemented")
+def test_bad_quality(fake):
+    data = fake.flight_slot(cancelled=False)
+    assert data.actualdeparture < data.actualarrival
+    assert re_delaycode.search(data.delaycode)
+
+
+@pytest.mark.skip("not implemented")
+def test_noisy_quality(config):
+    assert False
+
+
+@pytest.mark.skip("not implemented")
+def test_good_quality(config):
+    assert False

@@ -31,9 +31,7 @@ class AircraftGenerator:
 
             # creates a dictwriter
             writer = csv.DictWriter(
-                file.open("wt"),
-                fieldnames=entities[0].as_dict().keys(),
-                delimiter=",",
+                file.open("wt"), fieldnames=entities[0].as_dict().keys(), delimiter=",",
             )
 
             writer.writeheader()
@@ -72,7 +70,8 @@ class AircraftGenerator:
         logging.info("Generating flight slots")
         for _ in tqdm(range(self.config.flight_slots_size)):
             slot = fake.flight_slot(
-                manufacturer=fake.random_element(self.manufacturers)
+                manufacturer=fake.random_element(self.manufacturers),
+                quality=fake.random_quality(self.config._prob_weights),
             )
             self.flight_slots.append(slot)
 
@@ -80,7 +79,8 @@ class AircraftGenerator:
         for _ in tqdm(range(self.config.maintenance_slots_size)):
 
             slot = fake.maintenance_slot(
-                manufacturer=fake.random_element(self.manufacturers)
+                manufacturer=fake.random_element(self.manufacturers),
+                quality=fake.random_quality(self.config._prob_weights),
             )
             self.maintenance_slots.append(slot)
 
@@ -98,15 +98,21 @@ class AircraftGenerator:
         for flight_slot in tqdm(self.flight_slots):
             # produce a number of operational interruptions
             oi = fake.operational_interruption_event(
-                max_id=self.config.size, flight_slot=flight_slot
+                max_id=self.config.size,
+                flight_slot=flight_slot,
+                quality=fake.random_quality(self.config._prob_weights),
             )
+
+
             self.operational_interruptions.append(oi)
-            self.maintenance_events.append(oi)
+            self.maintenance_events.append(amos.MaintenanceEvent.from_child(oi))
 
         logging.info("Generating maintenance events")
         for maintenance_slot in tqdm(self.maintenance_slots):
             m = fake.maintenance_event(
-                max_id=self.config.size, maintenance_slot=maintenance_slot
+                max_id=self.config.size,
+                maintenance_slot=maintenance_slot,
+                quality=fake.random_quality(self.config._prob_weights),
             )
             self.maintenance_events.append(m)
 
@@ -116,9 +122,7 @@ class AircraftGenerator:
         logging.info("Generating attachments")
         for oi in tqdm(self.operational_interruptions):
             event_attachments = []
-            logging.debug(
-                f"Generating attachments for oi '{oi.maintenanceid}'"
-            )
+            logging.debug(f"Generating attachments for oi '{oi.maintenanceid}'")
             for j in range(self.config.max_attch_size):
                 fake_attachment = fake.attachment(operational_interruption=oi)
                 event_attachments.append(fake_attachment)
@@ -128,14 +132,18 @@ class AircraftGenerator:
 
         logging.info("Generating technical logbook orders")
         self.tlb_orders = [
-            fake.technical_logbook_order(max_id=self.config.tlb_orders_size)
+            fake.technical_logbook_order(
+                max_id=self.config.tlb_orders_size,
+                quality=fake.random_quality(self.config._prob_weights),
+            )
             for _ in tqdm(range(self.config.tlb_orders_size))
         ]
 
         logging.info("Generating forecasted orders")
         self.forecasted_orders = [
             fake.forecasted_order(
-                max_id=self.config.size
+                max_id=self.config.size,
+                quality=fake.random_quality(self.config._prob_weights),
             )  # TODO: how should this size be implemented?
             for _ in tqdm(range(self.config.forecasted_orders_size))
         ]

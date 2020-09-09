@@ -19,15 +19,11 @@ Base = declarative_base()
 
 # https://stackoverflow.com/a/22212214/5819113
 sa.event.listen(
-    Base.metadata,
-    "before_create",
-    sa.DDL('CREATE SCHEMA IF NOT EXISTS "AMOS"'),
+    Base.metadata, "before_create", sa.DDL('CREATE SCHEMA IF NOT EXISTS "AMOS"'),
 )
 
 sa.event.listen(
-    Base.metadata,
-    "after_drop",
-    sa.DDL('DROP SCHEMA IF EXISTS "AMOS" CASCADE'),
+    Base.metadata, "after_drop", sa.DDL('DROP SCHEMA IF EXISTS "AMOS" CASCADE'),
 )
 
 
@@ -117,9 +113,7 @@ class Workpackage(Base, RowIdMixin, AMOSMixin):
 class MaintenanceEventMixin(object):
 
     maintenanceid = sa.Column("maintenanceid", sa.CHAR(30))
-    aircraftregistration = sa.Column(
-        "aircraftregistration", sa.CHAR(6), nullable=False
-    )
+    aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
     airport = sa.Column("airport", sa.CHAR(3))
     subsystem = sa.Column("subsystem", sa.CHAR(4))
     starttime = sa.Column("starttime", sa.DateTime)
@@ -140,13 +134,13 @@ class MaintenanceEventMixin(object):
     @classmethod
     def from_child(cls, obj):
         return cls(
-            obj.maintenanceid,
-            obj.aircraftregistration,
-            obj.airport,
-            obj.subsystem,
-            obj.starttime,
-            obj.duration,
-            obj.kind,
+            maintenanceid=obj.maintenanceid,
+            aircraftregistration=obj.aircraftregistration,
+            airport=obj.airport,
+            subsystem=obj.subsystem,
+            starttime=obj.starttime,
+            duration=obj.duration,
+            kind=obj.kind,
         )
 
 
@@ -154,9 +148,7 @@ class MaintenanceEvent(Base, RowIdMixin, MaintenanceEventMixin, AMOSMixin):
     __tablename__ = "maintenanceevents"
 
 
-class OperationalInterruption(
-    Base, RowIdMixin, MaintenanceEventMixin, AMOSMixin
-):
+class OperationalInterruption(Base, RowIdMixin, MaintenanceEventMixin, AMOSMixin):
     __tablename__ = "operationinterruption"
 
     # TODO: confirm that
@@ -170,9 +162,7 @@ class OperationalInterruption(
 class WorkOrderMixin(object):
 
     workorderid = sa.Column("workorderid", sa.Integer)
-    aircraftregistration = sa.Column(
-        "aircraftregistration", sa.CHAR(6), nullable=False
-    )
+    aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
     executiondate = sa.Column("executiondate", sa.Date)
     executionplace = sa.Column("executionplace", sa.CHAR(3))
     workpackage = sa.Column("workpackage", sa.Integer)
@@ -202,9 +192,7 @@ class TechnicalLogbookOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
     __tablename__ = "technicallogbookorders"
 
     reporteurclass = sa.Column(
-        "reporteurclass",
-        sa.Enum("PIREP", "MAREP", name="reportkind"),
-        nullable=False,
+        "reporteurclass", sa.Enum("PIREP", "MAREP", name="reportkind"), nullable=False,
     )
     reporteurid = sa.Column("reporteurid", sa.SmallInteger, nullable=False)
     reportingdate = sa.Column("reportingdate", sa.Date, nullable=False)
