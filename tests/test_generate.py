@@ -1,7 +1,10 @@
 import pytest
 import typing as T
+import re
+
 from project.scripts.generate import AircraftGenerator
 from project.base.config import BaseConfig
+
 
 __doc__ = "Tests the generation of data"
 
@@ -110,3 +113,41 @@ def test_totals(custom_size):
 
     assert ag.total_entities == 10
     assert ag.total_instances == total_instances
+
+
+def test_quality_distributions():
+
+    config = BaseConfig(size=10, prob_good=0.5, prob_noisy=0.4, prob_bad=0.3,)
+
+    assert config._prob_weights == [0.5, 0.4, 0.3]
+
+
+def test_distributions_only_noisy():
+    """It's not trivial to test that *all* values are noisy
+    
+    In the absence of a validation library, we will try to test this
+    using regexp and good intentions for now"""
+
+    config = BaseConfig(size=10, prob_good=0, prob_noisy=1, prob_bad=0)
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+
+    frequency_units_kinds = {"Flights", "Days", "Miles"}
+
+    # we will check first that all kinds are not conformant
+    noisy_kinds = (fo.frequencyunits for fo in ag.forecasted_orders)
+
+    # but still they look like conformant values
+    re_kind = re.compile(r"\s*[flights]|[days]|[miles]*\s*", flags=re.I)
+
+    for kind in noisy_kinds:
+        assert kind not in frequency_units_kinds
+        assert re_kind.search(kind)
+
+    # we will then reconstruct them into proper values
+    stripped_kinds = (kind.strip() for kind in noisy_kinds)
+    rebuilt_kinds = (kind[0].upper() + kind[1:].lower() for kind in stripped_kinds)
+
+    # check that these values are now valid
+    for kind in rebuilt_kinds:
+        assert kind in frequency_units_kinds

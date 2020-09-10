@@ -55,13 +55,14 @@ def test_rule_R22_good(fake, config):
 
     assert data.actualdeparture < data.actualarrival
     assert re_delaycode.search(data.delaycode)
-    
+
     data = fake.flight_slot(cancelled=True)
 
     # if flight is cancelled, then some attributes must be empty
     assert data.delaycode is None
     assert data.actualarrival is None
     assert data.actualdeparture is None
+
 
 def test_rule_R22_bad(fake, config):
 
@@ -71,13 +72,14 @@ def test_rule_R22_bad(fake, config):
     assert re_delaycode.search(bad_data.delaycode) is None
 
 
+def test_make_noisy(fake):
+    "This test is very brittle. beware."
 
+    re_noisy_string = re.compile(r"^\s*[a]{5}\s*$", flags=re.IGNORECASE)
+    test_string = "aaaaa"
+    noisified_string = fake.make_noisy(string=test_string)
 
-
-def test_bad_quality(fake):
-    """This tests rule R22"""
-    assert data.actualdeparture > data.actualarrival
-    assert re_delaycode.search(data.delaycode)
+    assert re_noisy_string.search(noisified_string) is not None
 
 
 @pytest.mark.skip("not implemented")

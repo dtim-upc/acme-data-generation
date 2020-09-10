@@ -23,15 +23,15 @@ class AirportProvider(BaseProvider):
             random.SystemRandom().choice(allowed_chars) for x in range(str_size)
         )
 
-    def _make_noisy(self, string: str) -> str:
+    def make_noisy(self, string: str) -> str:
         """Introduces noise in strings at random
         By alters the case of strings at random, 
         introduces trailing whitespace
         
-        >>> _make_noisy("acme")                                                                                                                                                                    
+        >>> make_noisy("acme")                                                                                                                                                                    
         '   ACmE'
 
-        >>> _make_noisy("acme")                                                                                                                                                                    
+        >>> make_noisy("acme")                                                                                                                                                                    
         '     Acme'
 
         """
@@ -995,7 +995,7 @@ class AirportProvider(BaseProvider):
             raise ValueError('quality must be either "good", "bad" or "noisy"')
 
         if mapping.get("noisy") is None:
-            mapping["noisy"] = self._make_noisy(mapping["good"])
+            mapping["noisy"] = self.make_noisy(mapping["good"])
         return mapping[quality]
 
     def quality_mask(self, size: int, dist: T.List = [0.7, 0.1, 0.2]):

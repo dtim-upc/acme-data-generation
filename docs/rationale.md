@@ -110,7 +110,7 @@ Most method in `AirportProvider` that produce random data expose a `quality` par
 
 ```python
 def _quality_dispatcher(self, mapping, quality):
-    mapping["noisy"] = self._make_noisy(mapping["good"])
+    mapping["noisy"] = self.make_noisy(mapping["good"])
     return mapping[quality]
 
 def frequency_units_kind(self, quality: str = "good") -> str:
