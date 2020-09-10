@@ -1543,6 +1543,9 @@ class AirportProvider(BaseProvider):
             ]
         )
 
+        if quality == "bad":
+            actual_departure, actual_arrival = actual_arrival, actual_departure
+
         return aims.FlightSlot(
             aircraftregistration=aircraft_registration,
             scheduleddeparture=scheduled_departure,

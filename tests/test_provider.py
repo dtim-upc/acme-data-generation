@@ -5,10 +5,10 @@ import re
 
 """Tests that the airport random generator behaves according to some rules"""
 
-re_aircraftregistration = re.compile(r"XY-[A-Z]{3}")
-re_flightid = re.compile(r"\d{6}-[A-Z]{3}-[A-Z]{3}-\d{4}-XY-[A-Z]{3}")
-re_airport = re.compile(r"[A-Z]{3}")
-re_delaycode = re.compile(r"\d{2}")
+re_aircraftregistration = re.compile(r"^XY-[A-Z]{3}$")
+re_flightid = re.compile(r"^\d{6}-[A-Z]{3}-[A-Z]{3}-\d{4}-XY-[A-Z]{3}$")
+re_airport = re.compile(r"^[A-Z]{3}$")
+re_delaycode = re.compile(r"^\d{2}$")
 
 
 def test_maintenance_slot(fake):
@@ -46,16 +46,37 @@ def test_cancelled_flight(fake, config):
     assert data.delaycode is None
 
 
-def test_non_cancelled_flight(fake, config):
+# -------------------------------- test rules -------------------------------- #
+
+
+def test_rule_R22_good(fake, config):
+
     data = fake.flight_slot(cancelled=False)
+
     assert data.actualdeparture < data.actualarrival
     assert re_delaycode.search(data.delaycode)
+    
+    data = fake.flight_slot(cancelled=True)
+
+    # if flight is cancelled, then some attributes must be empty
+    assert data.delaycode is None
+    assert data.actualarrival is None
+    assert data.actualdeparture is None
+
+def test_rule_R22_bad(fake, config):
+
+    bad_data = fake.flight_slot(quality="bad", cancelled=False)
+
+    assert bad_data.actualdeparture > bad_data.actualarrival
+    assert re_delaycode.search(bad_data.delaycode) is None
 
 
-@pytest.mark.skip("not implemented")
+
+
+
 def test_bad_quality(fake):
-    data = fake.flight_slot(cancelled=False)
-    assert data.actualdeparture < data.actualarrival
+    """This tests rule R22"""
+    assert data.actualdeparture > data.actualarrival
     assert re_delaycode.search(data.delaycode)
 
 
