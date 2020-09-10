@@ -26,6 +26,7 @@ attrs = "*"
 tqdm = "*"
 progressbar2 = "*"
 sqlalchemy-utils = "*"
+airbase-gen = {path = "."}
 
 [requires]
 python_version = "3.8"
