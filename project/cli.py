@@ -26,7 +26,15 @@ default_output_path = basepath.parent.joinpath("out")
 
 def to_csv(args):
 
-    config = BaseConfig(size=args.rows)
+    config = BaseConfig(
+        size=args.rows,
+        prob_good=(1 - (args.prob_noisy + args.prob_bad)),
+        prob_noisy=args.prob_noisy,
+        prob_bad=args.prob_bad,
+    )
+
+    print(config._prob_weights)
+
     ag = AircraftGenerator(config)
     ag.populate()
     ag.to_csv(path=args.out_path)
@@ -34,7 +42,12 @@ def to_csv(args):
 
 def to_sql(args):
 
-    config = BaseConfig(size=args.rows)
+    config = BaseConfig(
+        size=args.rows,
+        prob_good=1 - (args.prob_noisy + args.prob_bad),
+        prob_noisy=args.prob_noisy,
+        prob_bad=args.prob_bad,
+    )
 
     _sqla_url = {
         "drivername": "postgres",
@@ -95,17 +108,33 @@ csv_parser = subparsers.add_parser(
     "csv", formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
 
-
 csv_parser.add_argument(
-    "-r", "--rows", help="number of rows to create", default=1000, type=int,
-)
-csv_parser.add_argument(
-    "-o",
-    "--out-path",
+    "out_path",
+    metavar="OUT_PATH",
     help="path to output folder",
     default=default_output_path,
     type=Path,
 )
+
+
+csv_parser.add_argument(
+    "--prob-noisy",
+    help="A probability that a row is generated with noisy quality of data",
+    default=0.0,
+    type=float,
+)
+
+csv_parser.add_argument(
+    "--prob-bad",
+    help="A probability that a row is generated with bad quality of data",
+    default=0.0,
+    type=float,
+)
+
+csv_parser.add_argument(
+    "-r", "--rows", help="number of rows to create", default=1000, type=int,
+)
+
 csv_parser.set_defaults(func=to_csv)
 
 # ---------------------------------------------------------------------------- #
@@ -114,6 +143,21 @@ csv_parser.set_defaults(func=to_csv)
 
 sql_parser = subparsers.add_parser(
     "sql", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
+
+
+sql_parser.add_argument(
+    "--prob-noisy",
+    help="A probability that a row is generated with noisy quality of data",
+    default=0.0,
+    type=float,
+)
+
+sql_parser.add_argument(
+    "--prob-bad",
+    help="A probability that a row is generated with bad quality of data",
+    default=0.0,
+    type=float,
 )
 
 sql_parser.add_argument(
@@ -133,9 +177,8 @@ sql_parser.add_argument(
 sql_parser.add_argument(
     "--db-user", help="database user", default="postgres", type=str,
 )
-sql_parser.add_argument(
-    "--db-pwd", help="database password", default="admin", type=str,
-)
+
+sql_parser.add_argument("--db-pwd", help="database password", type=str, required=True)
 sql_parser.add_argument("--db-host", help="database host", default="0.0.0.0", type=str)
 sql_parser.add_argument(
     "--db-port",
