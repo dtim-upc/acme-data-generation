@@ -1,5 +1,6 @@
 import pytest
 import typing as T
+from statistics import mean
 import re
 
 from project.scripts.generate import AircraftGenerator
@@ -115,10 +116,12 @@ def test_totals(custom_size):
     assert ag.total_instances == total_instances
 
 
+# -------------------------- test quality parameter -------------------------- #
+
+
 def test_quality_distributions():
 
     config = BaseConfig(size=10, prob_good=0.5, prob_noisy=0.4, prob_bad=0.3,)
-
     assert config._prob_weights == [0.5, 0.4, 0.3]
 
 
@@ -166,20 +169,106 @@ def test_distributions_only_bad():
     frequency_units_kinds = {"Flights", "Days", "Miles"}
 
     # we will check first that all kinds are not conformant
-    noisy_kinds = (fo.frequencyunits for fo in ag.forecasted_orders)
+    bad_kinds = (fo.frequencyunits for fo in ag.forecasted_orders)
 
     # and that they don't look like conformant values
     re_kind = re.compile(r"^\s*flights|days|miles\s*$", flags=re.I)
 
-    for kind in noisy_kinds:
+    for kind in bad_kinds:
         assert kind not in frequency_units_kinds
         assert re_kind.search(kind) is None
 
     # we will then reconstruct them into proper values
-    stripped_kinds = (kind.strip() for kind in noisy_kinds)
+    stripped_kinds = (kind.strip() for kind in bad_kinds)
     rebuilt_kinds = (kind[0].upper() + kind[1:].lower() for kind in stripped_kinds)
 
     # check that these values are now valid
     for kind in rebuilt_kinds:
         assert kind not in frequency_units_kinds
         assert re_kind.search(kind) is None
+
+
+def test_distributions_only_good():
+    """It's not trivial to test that *all* values are bad
+    
+    In the absence of a validation library, we will try to test this
+    using regexp and good intentions for now"""
+
+    config = BaseConfig(size=10, prob_good=1, prob_noisy=0, prob_bad=0)
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+
+    frequency_units_kinds = {"Flights", "Days", "Miles"}
+
+    # we will check first that all kinds are not conformant
+    good_kinds = (fo.frequencyunits for fo in ag.forecasted_orders)
+
+    # and that they don't look like conformant values
+    re_kind = re.compile(r"^Flights|Days|Miles$")
+
+    for kind in good_kinds:
+        assert kind in frequency_units_kinds
+        assert re_kind.search(kind)
+
+    # we will then reconstruct them into proper values
+    stripped_kinds = (kind.strip() for kind in good_kinds)
+    rebuilt_kinds = (kind[0].upper() + kind[1:].lower() for kind in stripped_kinds)
+
+    # check that these values are still valid
+    for kind in good_kinds:
+        assert kind in frequency_units_kinds
+        assert re_kind.search(kind)
+
+
+def test_distributions_mixed_qualities():
+    """Again, it's not trivial to test this. 
+    
+    In the absence of a validation library, we will try to test this
+    using regexp and good intentions for now"""
+
+    config = BaseConfig(size=100, prob_good=0.6, prob_noisy=0.3, prob_bad=0.1)
+
+    # we will check first that all kinds are not conformant
+    # and that they don't look like conformant values
+    re_kind_good = re.compile(r"^Flights|Days|Miles$")
+    re_kind_noisy = re.compile(r"^\s*flights|days|miles\s*$", flags=re.I)
+    frequency_units_kinds = {"Flights", "Days", "Miles"}
+
+    count_good = []
+    count_noisy = []
+    count_bad = []
+
+    for _ in range(10):
+        ag = AircraftGenerator(config=config)
+        ag.populate()
+
+        kinds = [fo.frequencyunits for fo in ag.forecasted_orders]
+
+        _count_good = sum(1 for kind in kinds if re_kind_good.search(kind))
+
+        count_good.append(_count_good)
+        count_noisy.append(
+            sum(1 for kind in kinds if re_kind_noisy.search(kind)) - _count_good
+        )
+
+        # if it does not match either of good or noisy, then it is bad
+        count_bad.append(
+            sum(
+                1
+                for kind in kinds
+                if all(
+                    [
+                        re_kind_good.search(kind) is None,
+                        re_kind_noisy.search(kind) is None,
+                    ]
+                )
+            )
+        )
+
+    # assert that counts are approximately what we expect
+    tol = 10
+    assert mean(count_good) == pytest.approx(60, abs=tol)  # (100)*0.6 ± tol
+    assert mean(count_noisy) == pytest.approx(30, abs=tol)  # (100)*0.3 ± tol
+    assert mean(count_bad) == pytest.approx(10, abs=tol)  # (100)*0.1 ± tol
+    assert (mean(count_good) + mean(count_noisy)) == pytest.approx(90, abs=tol)
+
