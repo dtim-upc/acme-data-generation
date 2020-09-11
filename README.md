@@ -60,9 +60,42 @@ optional arguments:
                         compose (default: 54320)
 ```
 
-## More control over the generation process
+## Writing your own generator
 
-The library uses a `BaseConfig` class with more settings that can be overriden.
+The library uses a `BaseConfig` class with more settings that can be overriden. To write
+your own generator, you can look at how this is done within the code
+
+- look at `cli.py`
+- look at the tests in `/tests`
+
+The baseline is
+
+1. Instantiate a `config` object from the `BaseConfig` class, with custom parameters
+   1. Alternatively, overwrite parameters of the instance afterwards, because Python (yay)
+2. Pass this `config` object to the constructor of `AircraftGenerator`, creating a generator `ag` instance
+3. Call `ag.populate()` to generate random elements in memory. These are stored in lists as attributes of `ag`
+4. Inspect the generated elements, and if you are okay with them, call `ag.to_csv()` or `ag.to_sql()` depending on what you want
+
+In code, this is roughly equivalent to
+
+```python
+from project.base.config import BaseConfig
+from project.scripts.generate import AircraftGenerator
+
+config = BaseConfig(
+   size=rows,
+   prob_good=(1 - (prob_noisy + prob_bad)),
+   prob_noisy=prob_noisy,
+   prob_bad=prob_bad,
+   **other_args
+)
+
+ag = AircraftGenerator(config)
+ag.populate()
+ag.to_csv(path=out_path)
+```
+
+Make sure to read more about the program in the [rationale](docs/rationale.md)
 
 ## Testing
 
@@ -94,4 +127,4 @@ Data generated with this program should
 
 ## Rationale
 
-You can read more about how this generator was developed here in [rationale](docs/rationale.md)
+You can read more about how this generator was developed here in this short [document](docs/rationale.md)
