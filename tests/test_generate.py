@@ -138,7 +138,7 @@ def test_distributions_only_noisy():
     noisy_kinds = (fo.frequencyunits for fo in ag.forecasted_orders)
 
     # but still they look like conformant values
-    re_kind = re.compile(r"\s*[flights]|[days]|[miles]*\s*", flags=re.I)
+    re_kind = re.compile(r"^\s*flights|days|miles\s*$", flags=re.I)
 
     for kind in noisy_kinds:
         assert kind not in frequency_units_kinds
@@ -151,3 +151,35 @@ def test_distributions_only_noisy():
     # check that these values are now valid
     for kind in rebuilt_kinds:
         assert kind in frequency_units_kinds
+
+
+def test_distributions_only_bad():
+    """It's not trivial to test that *all* values are bad
+    
+    In the absence of a validation library, we will try to test this
+    using regexp and good intentions for now"""
+
+    config = BaseConfig(size=10, prob_good=0, prob_noisy=0, prob_bad=1)
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+
+    frequency_units_kinds = {"Flights", "Days", "Miles"}
+
+    # we will check first that all kinds are not conformant
+    noisy_kinds = (fo.frequencyunits for fo in ag.forecasted_orders)
+
+    # and that they don't look like conformant values
+    re_kind = re.compile(r"^\s*flights|days|miles\s*$", flags=re.I)
+
+    for kind in noisy_kinds:
+        assert kind not in frequency_units_kinds
+        assert re_kind.search(kind) is None
+
+    # we will then reconstruct them into proper values
+    stripped_kinds = (kind.strip() for kind in noisy_kinds)
+    rebuilt_kinds = (kind[0].upper() + kind[1:].lower() for kind in stripped_kinds)
+
+    # check that these values are now valid
+    for kind in rebuilt_kinds:
+        assert kind not in frequency_units_kinds
+        assert re_kind.search(kind) is None
