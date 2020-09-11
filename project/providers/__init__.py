@@ -1489,13 +1489,15 @@ class AirportProvider(BaseProvider):
         quality = kwargs.pop("quality", "good")
 
         # TODO: remove these defaults and expose them at a higher level
-        max_duration: int = config.get("max_duration", 5)
-        max_pas: int = config.get("max_pas", 180)
-        min_pas: int = config.get("min_pas", 90)
-        max_ccrew: int = config.get("max_ccrew", 4)
-        min_ccrew: int = config.get("min_ccrew", 3)
-        max_fcrew: int = config.get("max_fcrew", 3)
-        min_fcrew: int = config.get("min_fcrew", 2)
+        multiplier = 1 if quality in {"good", "noisy"} else self.random_int(5, 10)
+
+        max_duration: int = config.get("max_duration", 5) * multiplier
+        max_pas: int = config.get("max_pas", 180) * multiplier
+        min_pas: int = config.get("min_pas", 90) * multiplier
+        max_ccrew: int = config.get("max_ccrew", 4) * multiplier
+        min_ccrew: int = config.get("min_ccrew", 3) * multiplier
+        max_fcrew: int = config.get("max_fcrew", 3) * multiplier
+        min_fcrew: int = config.get("min_fcrew", 2) * multiplier
 
         route: T.List[str] = self.flight_route()
         orig: str = route[0]
@@ -1509,6 +1511,7 @@ class AirportProvider(BaseProvider):
         scheduled_arrival: datetime = scheduled_departure + self.duration(
             max_minutes=max_duration
         )
+        
         aircraft_registration: str = getattr(
             manufacturer, "aircraft_reg_code", None
         ) or self.aircraft_registration_code(quality=quality)
@@ -1544,7 +1547,10 @@ class AirportProvider(BaseProvider):
         )
 
         if quality == "bad":
+            # corrupt data, just because
+            # swap order
             actual_departure, actual_arrival = actual_arrival, actual_departure
+            aircraft_registration = self.aircraft_registration_code(quality=quality)
 
         return aims.FlightSlot(
             aircraftregistration=aircraft_registration,
