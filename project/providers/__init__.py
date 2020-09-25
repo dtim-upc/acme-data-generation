@@ -23,7 +23,9 @@ class AirportProvider(BaseProvider):
             random.SystemRandom().choice(allowed_chars) for x in range(str_size)
         )
 
-    def make_noisy(self, string: str) -> str:
+    def make_noisy(
+        self, string: str, alter_case: bool = True, max_whitespace: int = 0
+    ) -> str:
         """Introduces noise in strings at random
         By alters the case of strings at random, 
         introduces trailing whitespace
@@ -35,12 +37,13 @@ class AirportProvider(BaseProvider):
         '     Acme'
 
         """
+
         altered_case = (
             char.upper() if self.generator.pybool() else char.lower() for char in string
-        )
+        ) if alter_case else string
 
-        leading_whitespace = " " * self.random_int(0, 5)
-        trailing_whitespace = " " * self.random_int(0, 5)
+        leading_whitespace = " " * self.random_int(0, max_whitespace)
+        trailing_whitespace = " " * self.random_int(0, max_whitespace)
 
         return leading_whitespace + "".join(altered_case) + trailing_whitespace
 
@@ -996,6 +999,7 @@ class AirportProvider(BaseProvider):
 
         if mapping.get("noisy") is None:
             mapping["noisy"] = self.make_noisy(mapping["good"])
+
         return mapping[quality]
 
     def quality_mask(self, size: int, dist: T.List = [0.7, 0.1, 0.2]):
@@ -1036,7 +1040,7 @@ class AirportProvider(BaseProvider):
 
     def delay_code(self, quality: str = "good") -> str:
         mapping = {
-            "bad": self.bothify("###"),  # e.g. 123, 999
+            "bad": self.bothify("##"),  # e.g. 123, 999
             "good": self.random_element(self._delay_codes),
         }
 
@@ -1044,17 +1048,23 @@ class AirportProvider(BaseProvider):
 
     def slot_kind(self, quality: str = "good") -> str:
         mapping = {
-            "bad": self.bothify("###"),  # e.g. 123, 999
+            # "bad": self.bothify("###"),  # e.g. 123, 999 # deprecated, see issue #2
             "good": self.random_element(self._slot_kinds),
         }
+
+        mapping["bad"] = mapping["noisy"] = mapping["good"]
 
         return self._quality_dispatcher(mapping, quality)
 
     def maintenance_event_kind(self, quality: str = "good") -> str:
         mapping = {
             "good": self.random_element(self._maintenance_event_kinds),
-            "bad": self.random_string(),
+            # "bad": self.random_string(),
         }
+
+        mapping["bad"] = mapping["noisy"] = mapping["good"]
+        # noisy and bad values are of
+
         return self._quality_dispatcher(mapping, quality)
 
     def ata_code(self, quality: str = "good") -> str:
@@ -1067,29 +1077,40 @@ class AirportProvider(BaseProvider):
     def work_order_kind(self, quality: str = "good") -> str:
         mapping = {
             "good": self.random_element(self._work_order_kinds),
-            "bad": self.random_string(random.randint(5, 10)),
+            # "bad": self.random_string(random.randint(5, 10)),
         }
+
+        mapping["bad"] = mapping["noisy"] = mapping["good"]
+
         return self._quality_dispatcher(mapping, quality)
 
     def frequency_units_kind(self, quality: str = "good") -> str:
         mapping = {
             "good": self.random_element(self._frequency_units_kinds),
-            "bad": self.random_string(random.randint(2, 5)),
+            # "bad": self.random_string(random.randint(2, 5)),
         }
+
+        mapping["bad"] = mapping["noisy"] = mapping["good"]
         return self._quality_dispatcher(mapping, quality)
 
     def mel_category_kind(self, quality: str = "good") -> str:
         mapping = {
             "good": self.random_element(self._mel_category_kinds),
-            "bad": self.random_string(random.randint(5, 10)),
+            # "bad": self.random_string(random.randint(5, 10)),
         }
+
+        mapping["bad"] = mapping["noisy"] = mapping["good"]
+
         return self._quality_dispatcher(mapping, quality)
 
     def report_kind(self, quality: str = "good") -> str:
         mapping = {
             "good": self.random_element(self._report_kinds),
-            "bad": self.random_string(5, ascii_uppercase),
+            # "bad": self.random_string(5, ascii_uppercase),
         }
+
+        mapping["bad"] = mapping["noisy"] = mapping["good"]
+
         return self._quality_dispatcher(mapping, quality)
 
     def aircraft_model(self, quality: str = "good") -> str:
@@ -1511,7 +1532,7 @@ class AirportProvider(BaseProvider):
         scheduled_arrival: datetime = scheduled_departure + self.duration(
             max_minutes=max_duration
         )
-        
+
         aircraft_registration: str = getattr(
             manufacturer, "aircraft_reg_code", None
         ) or self.aircraft_registration_code(quality=quality)

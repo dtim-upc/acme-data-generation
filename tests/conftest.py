@@ -36,6 +36,53 @@ def fake():
 
 @pytest.fixture()
 def gen(config):
+    # tweak the config a little
+    config.size = 10
+    prob_good = 1
+    prob_noisy = 0
+    prob_bad = 0
+    config._prob_weights = [prob_good, prob_noisy, prob_bad]
+
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+    yield ag
+
+
+@pytest.fixture()
+def gen_noisy(config):
+    config.size = 10
+
+    prob_good = 0
+    prob_noisy = 1
+    prob_bad = 0
+    config._prob_weights = [prob_good, prob_noisy, prob_bad]
+
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+    yield ag
+
+
+@pytest.fixture()
+def gen_bad(config):
+
+    prob_good = 0
+    prob_noisy = 0
+    prob_bad = 1
+    config._prob_weights = [prob_good, prob_noisy, prob_bad]
+
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+    yield ag
+
+
+@pytest.fixture()
+def gen_mixed(config):
+    prob_good = 0.6
+    prob_noisy = 0.3
+    prob_bad = 0.1
+
+    config._prob_weights = [prob_good, prob_noisy, prob_bad]
+
     ag = AircraftGenerator(config=config)
     ag.populate()
     yield ag
