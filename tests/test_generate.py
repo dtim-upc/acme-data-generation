@@ -125,6 +125,7 @@ def test_quality_distributions():
     assert config._prob_weights == [0.5, 0.4, 0.3]
 
 
+@pytest.mark.skip("Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2")
 def test_distributions_only_noisy():
     """It's not trivial to test that *all* values are noisy
     
@@ -156,6 +157,7 @@ def test_distributions_only_noisy():
         assert kind in frequency_units_kinds
 
 
+@pytest.mark.skip("Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2")
 def test_distributions_only_bad():
     """It's not trivial to test that *all* values are bad
     
@@ -220,6 +222,7 @@ def test_distributions_only_good():
         assert re_kind.search(kind)
 
 
+@pytest.mark.skip("Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2")
 def test_distributions_mixed_qualities():
     """Again, it's not trivial to test this. 
     

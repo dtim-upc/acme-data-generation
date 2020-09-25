@@ -69,7 +69,8 @@ def test_rule_R22_bad(fake, config):
     bad_data = fake.flight_slot(quality="bad", cancelled=False)
 
     assert bad_data.actualdeparture > bad_data.actualarrival
-    assert re_delaycode.search(bad_data.delaycode) is None
+    # test updated because of https://github.com/diegoquintanav/acme-data-generation/issues/2
+    assert re_delaycode.search(bad_data.delaycode) is not None
 
 
 def test_make_noisy(fake):
