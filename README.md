@@ -22,15 +22,17 @@ repository containing utilities for generating random data, for the DW laborator
 
 ```bash
 $airbase-gen csv --help
-usage: airbase-gen csv [-h] [-r ROWS] [-o OUT_PATH]
+usage: airbase-gen csv [-h] [--prob-noisy PROB_NOISY] [--prob-bad PROB_BAD] [-r ROWS] OUT_PATH
+
+positional arguments:
+  OUT_PATH              path to output folder
 
 optional arguments:
   -h, --help            show this help message and exit
+  --prob-noisy PROB_NOISY
+                        A probability that a row is generated with noisy quality of data (default: 0.0)
+  --prob-bad PROB_BAD   A probability that a row is generated with bad quality of data (default: 0.0)
   -r ROWS, --rows ROWS  number of rows to create (default: 1000)
-  -o OUT_PATH, --out-path OUT_PATH
-                        path to output folder (default: /home/diego/Insync/die
-                        go.quintana@ciae.uchile.cl/Google Drive - Shared with
-                        me/beca-abello/acme-data-generation/out)
 ```
 
 ## Using docker-compose
@@ -43,21 +45,22 @@ optional arguments:
 
 ```bash
 $airbase-gen sql --help
-usage: airbase-gen sql [-h] [-r ROWS] [--hard] [-v] [--db-name DB_NAME]
-                       [--db-user DB_USER] [--db-pwd DB_PWD]
-                       [--db-host DB_HOST] [--db-port DB_PORT]
+usage: airbase-gen sql [-h] [--prob-noisy PROB_NOISY] [--prob-bad PROB_BAD] [-r ROWS] [--hard] [-v] [--db-name DB_NAME] [--db-user DB_USER] --db-pwd DB_PWD [--db-host DB_HOST]
+                       [--db-port DB_PORT]
 
 optional arguments:
   -h, --help            show this help message and exit
+  --prob-noisy PROB_NOISY
+                        A probability that a row is generated with noisy quality of data (default: 0.0)
+  --prob-bad PROB_BAD   A probability that a row is generated with bad quality of data (default: 0.0)
   -r ROWS, --rows ROWS  number of rows to store (default: 1000)
   --hard                wipe database before insertion (default: False)
   -v, --verbose         sets SQLAlchemy as verbose (default: False)
   --db-name DB_NAME     database name (default: postgres)
   --db-user DB_USER     database user (default: postgres)
-  --db-pwd DB_PWD       database password (default: admin)
+  --db-pwd DB_PWD       database password (default: None)
   --db-host DB_HOST     database host (default: 0.0.0.0)
-  --db-port DB_PORT     database port. The default is 54320, set by docker-
-                        compose (default: 54320)
+  --db-port DB_PORT     database port. The default is 54320, set by docker-compose (default: 54320)
 ```
 
 ## Writing your own generator
