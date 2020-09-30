@@ -19,11 +19,15 @@ Base = declarative_base()
 
 # https://stackoverflow.com/a/22212214/5819113
 sa.event.listen(
-    Base.metadata, "before_create", sa.DDL('CREATE SCHEMA IF NOT EXISTS "AMOS"'),
+    Base.metadata,
+    "before_create",
+    sa.DDL('CREATE SCHEMA IF NOT EXISTS "AMOS"'),
 )
 
 sa.event.listen(
-    Base.metadata, "after_drop", sa.DDL('DROP SCHEMA IF EXISTS "AMOS" CASCADE'),
+    Base.metadata,
+    "after_drop",
+    sa.DDL('DROP SCHEMA IF EXISTS "AMOS" CASCADE'),
 )
 
 
@@ -192,7 +196,9 @@ class TechnicalLogbookOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
     __tablename__ = "technicallogbookorders"
 
     reporteurclass = sa.Column(
-        "reporteurclass", sa.Enum("PIREP", "MAREP", name="reportkind"), nullable=False,
+        "reporteurclass",
+        sa.Enum("PIREP", "MAREP", name="reportkind"),
+        nullable=False,
     )
     reporteurid = sa.Column("reporteurid", sa.SmallInteger, nullable=False)
     reportingdate = sa.Column("reportingdate", sa.Date, nullable=False)
@@ -208,9 +214,9 @@ class ForecastedOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
     planned = sa.Column("planned", sa.Date, nullable=False)
     frequency = sa.Column("frequency", sa.SmallInteger, nullable=False)
     frequencyunits = sa.Column(
-            "frequencyunits",
-            sa.Enum("Flights", "Days", "Miles", name="frequencyunitskind"),
-            nullable=False,
+        "frequencyunits",
+        sa.Enum("Flights", "Days", "Miles", name="frequencyunitskind"),
+        nullable=False,
     )
     forecastedmanhours = sa.Column(
         "forecastedmanhours", sa.SmallInteger, nullable=False
