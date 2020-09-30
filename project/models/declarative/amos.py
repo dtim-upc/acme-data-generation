@@ -207,12 +207,10 @@ class ForecastedOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
     deadline = sa.Column("deadline", sa.Date, nullable=False)
     planned = sa.Column("planned", sa.Date, nullable=False)
     frequency = sa.Column("frequency", sa.SmallInteger, nullable=False)
-    frequencyunits = (
-        sa.Column(
+    frequencyunits = sa.Column(
             "frequencyunits",
             sa.Enum("Flights", "Days", "Miles", name="frequencyunitskind"),
             nullable=False,
-        ),
     )
     forecastedmanhours = sa.Column(
         "forecastedmanhours", sa.SmallInteger, nullable=False
