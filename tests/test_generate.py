@@ -43,19 +43,31 @@ def test_slots_size(config, size):
 
 
 @pytest.mark.parametrize("size", [10, 100, 1000])
-def test_workorders_size(config, size):
+def test_work_orders_size(config, size):
 
-    config.tlb_orders_size = size
-    config.forecasted_orders_size = size
-    total_size = 2 * size
+    # work orders should be the size of work packages
+    # work packages are the size of maintenance_events
+    # and maintenance_events are the size of operational interruptions + common maintenance events
+    # operational interruptions are the size of flight slots
+    # common maintenance events are the size of maintenance slots
+    # config.tlb_orders_size = size
+    # config.forecasted_orders_size = size
+
+    # since flight slots = size, and maintenance slots = size
+    # work orders should be 2 * size,
+    # and tlb_orders and forecasted orders are split 50/50 of that
+
+    config.size = size
+    config.flight_slots_size = size
+    config.maintenance_slots_size = size
 
     ag = AircraftGenerator(config=config)
     ag.populate()
 
     assert len(ag.tlb_orders) == size
     assert len(ag.forecasted_orders) == size
-    assert len(ag.workorders) == total_size
-    assert len(ag.tlb_orders) + len(ag.forecasted_orders) == len(ag.workorders)
+    assert len(ag.work_orders) == size * 2
+    assert len(ag.tlb_orders) + len(ag.forecasted_orders) == len(ag.work_orders)
 
 
 @pytest.mark.parametrize("attch_size", [1, 2])
@@ -105,14 +117,15 @@ def test_totals(custom_size):
             len(ag.operational_interruptions),
             len(ag.maintenance_events),
             len(ag.manufacturers),
-            len(ag.workorders),
+            len(ag.work_orders),
+            len(ag.work_packages),
             len(ag.tlb_orders),
             len(ag.forecasted_orders),
             len(ag.attachments),
         ]
     )
 
-    assert ag.total_entities == 10
+    assert ag.total_entities == 11
     assert ag.total_instances == total_instances
 
 
@@ -121,14 +134,21 @@ def test_totals(custom_size):
 
 def test_quality_distributions():
 
-    config = BaseConfig(size=10, prob_good=0.5, prob_noisy=0.4, prob_bad=0.3,)
+    config = BaseConfig(
+        size=10,
+        prob_good=0.5,
+        prob_noisy=0.4,
+        prob_bad=0.3,
+    )
     assert config._prob_weights == [0.5, 0.4, 0.3]
 
 
-@pytest.mark.skip("Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2")
+@pytest.mark.skip(
+    "Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2"
+)
 def test_distributions_only_noisy():
     """It's not trivial to test that *all* values are noisy
-    
+
     In the absence of a validation library, we will try to test this
     using regexp and good intentions for now"""
 
@@ -157,10 +177,12 @@ def test_distributions_only_noisy():
         assert kind in frequency_units_kinds
 
 
-@pytest.mark.skip("Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2")
+@pytest.mark.skip(
+    "Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2"
+)
 def test_distributions_only_bad():
     """It's not trivial to test that *all* values are bad
-    
+
     In the absence of a validation library, we will try to test this
     using regexp and good intentions for now"""
 
@@ -192,7 +214,7 @@ def test_distributions_only_bad():
 
 def test_distributions_only_good():
     """It's not trivial to test that *all* values are bad
-    
+
     In the absence of a validation library, we will try to test this
     using regexp and good intentions for now"""
 
@@ -222,10 +244,12 @@ def test_distributions_only_good():
         assert re_kind.search(kind)
 
 
-@pytest.mark.skip("Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2")
+@pytest.mark.skip(
+    "Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2"
+)
 def test_distributions_mixed_qualities():
-    """Again, it's not trivial to test this. 
-    
+    """Again, it's not trivial to test this.
+
     In the absence of a validation library, we will try to test this
     using regexp and good intentions for now"""
 
@@ -274,4 +298,3 @@ def test_distributions_mixed_qualities():
     assert mean(count_noisy) == pytest.approx(30, abs=tol)  # (100)*0.3 ± tol
     assert mean(count_bad) == pytest.approx(10, abs=tol)  # (100)*0.1 ± tol
     assert (mean(count_good) + mean(count_noisy)) == pytest.approx(90, abs=tol)
-

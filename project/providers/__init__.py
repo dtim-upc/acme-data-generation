@@ -27,20 +27,25 @@ class AirportProvider(BaseProvider):
         self, string: str, alter_case: bool = True, max_whitespace: int = 0
     ) -> str:
         """Introduces noise in strings at random
-        By alters the case of strings at random, 
+        By alters the case of strings at random,
         introduces trailing whitespace
-        
-        >>> make_noisy("acme")                                                                                                                                                                    
+
+        >>> make_noisy("acme")
         '   ACmE'
 
-        >>> make_noisy("acme")                                                                                                                                                                    
+        >>> make_noisy("acme")
         '     Acme'
 
         """
 
         altered_case = (
-            char.upper() if self.generator.pybool() else char.lower() for char in string
-        ) if alter_case else string
+            (
+                char.upper() if self.generator.pybool() else char.lower()
+                for char in string
+            )
+            if alter_case
+            else string
+        )
 
         leading_whitespace = " " * self.random_int(0, max_whitespace)
         trailing_whitespace = " " * self.random_int(0, max_whitespace)
@@ -1143,7 +1148,7 @@ class AirportProvider(BaseProvider):
         """produces random timestamp between two dates
 
         Note: these dates are hardcoded in the provider.
-        
+
         Returns:
             datetime: a random datetime object
         """
@@ -1219,9 +1224,11 @@ class AirportProvider(BaseProvider):
         )
 
     def interruption_duration(
-        self, interruption_type: T.Optional[str] = None, return_type: bool = False,
+        self,
+        interruption_type: T.Optional[str] = None,
+        return_type: bool = False,
     ) -> T.Union[timedelta, T.Tuple[str, timedelta]]:
-        """Returns a time interval specific to some interruption type. 
+        """Returns a time interval specific to some interruption type.
 
         If no interruption type is provided, then an interruption type is
         generated internally.
@@ -1303,12 +1310,33 @@ class AirportProvider(BaseProvider):
     #                                     AMOS                                     #
     # ---------------------------------------------------------------------------- #
 
-    def work_package(self, quality: str = "good") -> amos.Workpackage:
+    def work_package(
+        self,
+        max_id: int = 9999,
+        quality: str = "good",
+        maintenance_event: amos.MaintenanceEvent = None,
+    ) -> amos.Workpackage:
+        """Produces a random work package object, possibly seeded
+
+        :param quality: the quality of the random object generated, defaults to "good"
+        :type quality: str, optional
+        :param maintenance_event: If provided, executiondate and executionplace are obtained from this object, defaults to None
+        :type maintenance_event: amos.MaintenanceEvent, optional.
+        :return: an instance of a work package, randomly generated
+        :rtype: amos.Workpackage
+        """
+
+        if maintenance_event:
+            executiondate = maintenance_event.starttime
+            executionplace = maintenance_event.airport
+        else:
+            executiondate = self.flight_timestamp(quality=quality)
+            executionplace = self.airport_code(quality=quality)
 
         return amos.Workpackage(
-            workpackageid=self.random_int(),
-            executiondate=self.flight_timestamp(quality=quality),
-            executionplace=self.airport_code(quality=quality),
+            workpackageid=self.random_int(max=max_id),
+            executiondate=executiondate,
+            executionplace=executionplace,
         )
 
     def attachment(
@@ -1337,15 +1365,15 @@ class AirportProvider(BaseProvider):
     def forecasted_order(
         self,
         max_id: int = 9999,
-        custom_id: T.Optional[int] = None,
         quality: str = "good",
+        work_package: amos.Workpackage = None,
     ) -> amos.ForecastedOrder:
 
         planned = self.flight_timestamp(quality=quality)
         deadline = planned + self.interruption_duration()
 
         order = amos.ForecastedOrder(
-            workorderid=custom_id or self.random_int(max=max_id),
+            workorderid=work_package.workpackageid or self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(quality=quality),
             executiondate=self.flight_timestamp(quality=quality),
             executionplace=self.airport_code(quality=quality),
@@ -1363,8 +1391,8 @@ class AirportProvider(BaseProvider):
     def technical_logbook_order(
         self,
         max_id: int = 9999,
-        custom_id: T.Optional[int] = None,
         quality: str = "good",
+        work_package: amos.Workpackage = None,
     ) -> amos.TechnicalLogbookOrder:
 
         # R10: MELCathegory values A,B,C,D refer to 3,10,30,120 days of allowed delay in the
@@ -1375,7 +1403,7 @@ class AirportProvider(BaseProvider):
         deadline = planned + self.reporting_deadline_duration(mel_type=mel)
 
         order = amos.TechnicalLogbookOrder(
-            workorderid=custom_id or self.random_int(max=max_id),
+            workorderid=work_package.workpackageid or self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(quality=quality),
             executiondate=self.flight_timestamp(quality=quality),
             executionplace=self.airport_code(quality=quality),
@@ -1436,7 +1464,10 @@ class AirportProvider(BaseProvider):
             duration = self.interruption_duration(interruption_type=kind)
 
         maintenance_id = "_".join(
-            [str(self.random_int(max=max_id)), str(ms.scheduleddeparture + duration),]
+            [
+                str(self.random_int(max=max_id)),
+                str(ms.scheduleddeparture + duration),
+            ]
         )
 
         return amos.MaintenanceEvent(
@@ -1638,8 +1669,14 @@ class AirportProvider(BaseProvider):
         selection = self.random_elements(
             elements=OrderedDict(
                 [
-                    (self.flight_slot, prob_flight_slot,),
-                    (self.maintenance_slot, prob_maintenance_slot,),
+                    (
+                        self.flight_slot,
+                        prob_flight_slot,
+                    ),
+                    (
+                        self.maintenance_slot,
+                        prob_maintenance_slot,
+                    ),
                 ]
             ),
             unique=False,
@@ -1669,8 +1706,14 @@ class AirportProvider(BaseProvider):
         selection = self.random_elements(
             elements=OrderedDict(
                 [
-                    (self.technical_logbook_order, prob_tlb,),
-                    (self.forecasted_order, prob_forecasted,),
+                    (
+                        self.technical_logbook_order,
+                        prob_tlb,
+                    ),
+                    (
+                        self.forecasted_order,
+                        prob_forecasted,
+                    ),
                 ]
             ),
             unique=False,
