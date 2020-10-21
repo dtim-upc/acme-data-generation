@@ -1404,20 +1404,25 @@ class AirportProvider(BaseProvider):
         # repairing of the problem in the aircraft, respectively.
 
         mel = self.mel_category_kind(quality=quality)
-        planned = self.flight_timestamp(quality=quality)
-        deadline = planned + self.reporting_deadline_duration(mel_type=mel)
+        due = self.flight_timestamp(quality=quality)
+        reportingdate = due + self.reporting_deadline_duration(mel_type=mel)
+        executiondate = self.generator.date_time_ad(
+            end_datetime=due, start_datetime=reportingdate
+        )
+
+        workpackageid = getattr(work_package, "workpackageid", None)
 
         order = amos.TechnicalLogbookOrder(
-            workorderid=work_package.workpackageid or self.random_int(max=max_id),
+            workorderid=workpackageid or self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(quality=quality),
-            executiondate=self.flight_timestamp(quality=quality),
+            executiondate=executiondate,
             executionplace=self.airport_code(quality=quality),
             workpackage=self.work_package(quality=quality).workpackageid,
             kind="TechnicalLogBook",
             reporteurclass=self.report_kind(quality=quality),
             reporteurid=self.reporter(quality=quality).reporteurid,
-            reportingdate=planned,
-            due=deadline,
+            reportingdate=reportingdate,
+            due=due,
             deferred=self.generator.pybool(),
             mel=mel,
         )
@@ -1584,7 +1589,7 @@ class AirportProvider(BaseProvider):
             actual_arrival = None
             actual_departure = None
         else:
-            delay = self.duration(max_minutes = max_delay)
+            delay = self.duration(max_minutes=max_delay)
             delay_code = self.delay_code(quality=quality)
             actual_departure = scheduled_departure + delay
             actual_arrival = scheduled_arrival + delay

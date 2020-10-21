@@ -144,3 +144,9 @@ def test_forecasted_orders_have_valid_executiondate(fake):
     assert fo.executiondate <= fo.deadline
     assert fo.executiondate >= fo.planned
 
+
+def test_tlb_orders_have_valid_executiondate(fake):
+
+    tlb = fake.technical_logbook_order()
+    assert tlb.executiondate <= tlb.due
+    assert tlb.executiondate >= tlb.reportingdate
