@@ -1349,15 +1349,22 @@ class AirportProvider(BaseProvider):
             file=self.generator.uuid4(), event=oi.maintenanceid
         )  # R4  # R5
 
-    def work_order(self, max_id: int = 9999) -> amos.WorkOrder:
+    def work_order(self, quality: str = "good", max_id: int = 9999) -> amos.WorkOrder:
+
+        workorderid=self.random_int(max=max_id)
+        executiondate = self.flight_timestamp(quality=quality)
+        aircraftregistration=self.aircraft_registration_code(quality=quality)
+        executionplace=self.airport_code(quality=quality)
+        workpackage=self.work_package(quality=quality).workpackageid
+        kind=self.work_order_kind(quality=quality)
 
         order = amos.WorkOrder(
-            workorderid=self.random_int(max=max_id),
-            aircraftregistration=self.aircraft_registration_code(),
-            executiondate=self.flight_timestamp(),
-            executionplace=self.airport_code(),
-            workpackage=self.work_package().workpackageid,
-            kind=self.work_order_kind(),
+            workorderid=workorderid,
+            aircraftregistration=aircraftregistration,
+            executiondate=executiondate,
+            executionplace=executionplace,
+            workpackage=workpackage,
+            kind=kind,
         )
 
         return order
