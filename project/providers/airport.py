@@ -1369,14 +1369,18 @@ class AirportProvider(BaseProvider):
         work_package: amos.Workpackage = None,
     ) -> amos.ForecastedOrder:
 
-        # review this in issue #6
         planned = self.flight_timestamp(quality=quality)
         deadline = planned + self.interruption_duration()
+        executiondate = self.generator.date_time_ad(
+            end_datetime=deadline, start_datetime=planned
+        )
+
+        workpackageid = getattr(work_package, "workpackageid", None)
 
         order = amos.ForecastedOrder(
-            workorderid=work_package.workpackageid or self.random_int(max=max_id),
+            workorderid=workpackageid or self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(quality=quality),
-            executiondate=self.flight_timestamp(quality=quality),
+            executiondate=executiondate,
             executionplace=self.airport_code(quality=quality),
             workpackage=self.work_package(quality=quality).workpackageid,
             kind="Forecast",

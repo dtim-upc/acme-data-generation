@@ -136,3 +136,11 @@ def test_flight_slots_arrivals_on_cancellation(fake):
 
     assert fs.actualarrival is None
     assert fs.actualdeparture is None
+
+
+def test_forecasted_orders_have_valid_executiondate(fake):
+
+    fo = fake.forecasted_order()
+    assert fo.executiondate <= fo.deadline
+    assert fo.executiondate >= fo.planned
+
