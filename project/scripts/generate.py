@@ -12,7 +12,7 @@ from tqdm import tqdm
 from project.base.config import BaseConfig
 from project.models.declarative import aims, amos
 from project.models.data.serializable import Manufacturer, Reporter
-from project.providers import fake
+from project.providers.airport import fake_airport
 from project.scripts.db_utils import get_session
 
 
@@ -64,7 +64,7 @@ class AircraftGenerator:
         # -------------------------- aircraft manufacturers ------------------ #
 
         self.manufacturers = [
-            fake.manufacturer() for _ in range(self.config.fleet_size)
+            fake_airport.manufacturer() for _ in range(self.config.fleet_size)
         ]
 
         # from these manufacturers, we obtain a list of aircraft_registration_codes
@@ -78,9 +78,9 @@ class AircraftGenerator:
 
         logging.info("Generating flight slots")
         for _ in tqdm(range(self.config.flight_slots_size)):
-            slot = fake.flight_slot(
-                manufacturer=fake.random_element(self.manufacturers),
-                quality=fake.random_quality(self.config._prob_weights),
+            slot = fake_airport.flight_slot(
+                manufacturer=fake_airport.random_element(self.manufacturers),
+                quality=fake_airport.random_quality(self.config._prob_weights),
             )
             self.flight_slots.append(slot)
 
@@ -88,9 +88,9 @@ class AircraftGenerator:
 
         logging.info("Generating maintenance slots")
         for _ in tqdm(range(self.config.maintenance_slots_size)):
-            slot = fake.maintenance_slot(
-                manufacturer=fake.random_element(self.manufacturers),
-                quality=fake.random_quality(self.config._prob_weights),
+            slot = fake_airport.maintenance_slot(
+                manufacturer=fake_airport.random_element(self.manufacturers),
+                quality=fake_airport.random_quality(self.config._prob_weights),
             )
             self.maintenance_slots.append(slot)
 
@@ -114,10 +114,10 @@ class AircraftGenerator:
         logging.info("Generating operational interruptions")
         for flight_slot in tqdm(self.flight_slots):
             # produce a number of operational interruptions
-            oi = fake.operational_interruption_event(
+            oi = fake_airport.operational_interruption_event(
                 max_id=self.config.size,
                 flight_slot=flight_slot,
-                quality=fake.random_quality(self.config._prob_weights),
+                quality=fake_airport.random_quality(self.config._prob_weights),
             )
 
             self.operational_interruptions.append(oi)
@@ -130,10 +130,10 @@ class AircraftGenerator:
         logging.info("Generating maintenance events")
 
         for maintenance_slot in tqdm(self.maintenance_slots):
-            m = fake.maintenance_event(
+            m = fake_airport.maintenance_event(
                 max_id=self.config.size,
                 maintenance_slot=maintenance_slot,
-                quality=fake.random_quality(self.config._prob_weights),
+                quality=fake_airport.random_quality(self.config._prob_weights),
             )
             self.maintenance_events.append(m)
 
@@ -146,7 +146,7 @@ class AircraftGenerator:
             event_attachments = []
             logging.debug(f"Generating attachments for oi '{oi.maintenanceid}'")
             for j in range(self.config.max_attch_size):
-                fake_attachment = fake.attachment(operational_interruption=oi)
+                fake_attachment = fake_airport.attachment(operational_interruption=oi)
                 event_attachments.append(fake_attachment)
 
             # we don't want nested lists
@@ -159,8 +159,8 @@ class AircraftGenerator:
 
         # for every maintenance event, we create a work package
         for maintenance_event in tqdm(self.maintenance_events):
-            work_package = fake.work_package(
-                quality=fake.random_quality(self.config._prob_weights),
+            work_package = fake_airport.work_package(
+                quality=fake_airport.random_quality(self.config._prob_weights),
                 max_id=self.config.size,
                 maintenance_event=maintenance_event,
             )
@@ -186,9 +186,9 @@ class AircraftGenerator:
         _forecast_wp_start = len(self.work_packages) - _tlb_wp_size_end
 
         for tlb_work_package in tqdm(self.work_packages[:_tlb_wp_size_end]):
-            fake_tlb = fake.technical_logbook_order(
+            fake_tlb = fake_airport.technical_logbook_order(
                 max_id=self.config.maintenance_events_size,
-                quality=fake.random_quality(self.config._prob_weights),
+                quality=fake_airport.random_quality(self.config._prob_weights),
                 work_package=tlb_work_package,
             )
 
@@ -199,9 +199,9 @@ class AircraftGenerator:
 
         logging.info("Generating forecasted orders and their work_orders relatives")
         for fo_work_package in tqdm(self.work_packages[_forecast_wp_start:]):
-            fake_fo = fake.forecasted_order(
+            fake_fo = fake_airport.forecasted_order(
                 max_id=self.config.maintenance_slots_size,
-                quality=fake.random_quality(self.config._prob_weights),
+                quality=fake_airport.random_quality(self.config._prob_weights),
                 work_package=fo_work_package,
             )
 

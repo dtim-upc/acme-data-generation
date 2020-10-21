@@ -65,26 +65,26 @@ Implements an `AirportProvider`, an extension of the `Faker.BaseProvider` class.
 
 ![provider](images/provider.png)
 
-An instance of this provider can be imported from `project.providers.fake`.
+An instance of this provider can be imported from `project.providers.airport.fake_airport`.
 Most of these methods implement a `quality` attribute, which can one from the set `("good","noisy","bad")`
 
 ```python
-from project.providers import fake
->>> fake.airport_code(quality="good") # valid random value
+from project.providers.airport import fake_airport
+>>> fake_airport.airport_code(quality="good") # valid random value
 'TIV'
->>> fake.airport_code(quality="noisy") # introduces noise
+>>> fake_airport.airport_code(quality="noisy") # introduces noise
 '     tiV  '
->>> fake.airport_code(quality="bad") # non valid random value: airport code can't have numbers
+>>> fake_airport.airport_code(quality="bad") # non valid random value: airport code can't have numbers
 '4ys'
 ```
 
 By default, if not implemented, all _bad_ values are strings of length 5 containing a combination of letters, numbers, and non-alphanumeric characters.
 
 ```python
-from project.providers import fake
->>> fake.random_string()
+from project.providers.airport import fake_airport
+>>> fake_airport.random_string()
 'H\\<O}'>>>
->>> fake.random_string(10)
+>>> fake_airport.random_string(10)
 'SC^JrjjyY='
 ```
 
@@ -124,11 +124,11 @@ def frequency_units_kind(self, quality: str = "good") -> str:
 This is the part where what a _good_ and a _bad_ value is defined in relation to each specific field. In this case, we say that a _good_ value is sampled from the collection of _frequency unit kinds_, and a _bad_ value is a string of random characters and random length between 2 and 5.
 
 ```python
->>> fake.frequency_units_kind()
+>>> fake_airport.frequency_units_kind()
 'Miles'
->>> fake.frequency_units_kind(quality = "noisy")
+>>> fake_airport.frequency_units_kind(quality = "noisy")
 '     mIles  '
->>> fake.frequency_units_kind(quality = "bad")
+>>> fake_airport.frequency_units_kind(quality = "bad")
 'hWsz'
 ```
 
