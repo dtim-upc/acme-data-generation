@@ -83,11 +83,36 @@ def test_make_noisy(fake):
     assert re_noisy_string.search(noisified_string) is not None
 
 
-@pytest.mark.skip("not implemented")
-def test_noisy_quality(config):
-    assert False
+def test_flight_slots_diff_scheduled_arrival_departure(fake):
+    """Tests that the difference between arrivals and departures is within range
+
+    refer to the first part of the issue in
+    https://github.com/diegoquintanav/acme-data-generation/issues/6
+    """
+
+    fs = fake.flight_slot()
+
+    assert (fs.scheduledarrival - fs.scheduleddeparture) <= datetime.timedelta(days=1)
 
 
-@pytest.mark.skip("not implemented")
-def test_good_quality(config):
-    assert False
+def test_flight_slots_diff_actual_arrival_departure(fake):
+    """Tests that the difference between arrivals and departures is within range
+
+    refer to the first part of the issue in
+    https://github.com/diegoquintanav/acme-data-generation/issues/6
+    """
+
+    fs = fake.flight_slot()
+
+    assert fs.actualarrival - fs.actualdeparture < datetime.timedelta(days=1)
+
+
+def test_flight_slots_arrivals_on_cancellation(fake):
+    """Test that flight slots marked as cancelled make sense
+
+    this means they have no data in the fields actualarrival and actualdeparture
+    """
+    fs = fake.flight_slot(cancelled=True)
+
+    assert fs.actualarrival is None
+    assert fs.actualdeparture is None

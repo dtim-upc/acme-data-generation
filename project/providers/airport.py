@@ -1214,7 +1214,7 @@ class AirportProvider(BaseProvider):
         return self._quality_dispatcher(mapping, quality)
 
     def duration(
-        self, max_days: int = 31, max_hours: int = 23, max_minutes: int = 59
+        self, max_days: int = 0, max_hours: int = 0, max_minutes: int = 0
     ) -> timedelta:
 
         return timedelta(
@@ -1369,6 +1369,7 @@ class AirportProvider(BaseProvider):
         work_package: amos.Workpackage = None,
     ) -> amos.ForecastedOrder:
 
+        # review this in issue #6
         planned = self.flight_timestamp(quality=quality)
         deadline = planned + self.interruption_duration()
 
@@ -1561,7 +1562,7 @@ class AirportProvider(BaseProvider):
         flight_crew: int = self.random_int(min=min_fcrew, max=max_fcrew)
         scheduled_departure: datetime = self.flight_timestamp(quality=quality)
         scheduled_arrival: datetime = scheduled_departure + self.duration(
-            max_minutes=max_duration
+            max_hours=max_duration
         )
 
         aircraft_registration: str = getattr(
