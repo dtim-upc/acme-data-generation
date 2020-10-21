@@ -1545,6 +1545,7 @@ class AirportProvider(BaseProvider):
         multiplier = 1 if quality in {"good", "noisy"} else self.random_int(5, 10)
 
         max_duration: int = config.get("max_duration", 5) * multiplier
+        max_delay: int = config.get("max_delay", 40) * multiplier
         max_pas: int = config.get("max_pas", 180) * multiplier
         min_pas: int = config.get("min_pas", 90) * multiplier
         max_ccrew: int = config.get("max_ccrew", 4) * multiplier
@@ -1579,7 +1580,7 @@ class AirportProvider(BaseProvider):
             actual_arrival = None
             actual_departure = None
         else:
-            delay = self.interruption_duration(interruption_type="Delay")
+            delay = self.duration(max_minutes = max_delay)
             delay_code = self.delay_code(quality=quality)
             actual_departure = scheduled_departure + delay
             actual_arrival = scheduled_arrival + delay

@@ -1,3 +1,4 @@
+from datetime import timedelta
 import pytest
 import typing as T
 import datetime
@@ -105,6 +106,25 @@ def test_flight_slots_diff_actual_arrival_departure(fake):
     fs = fake.flight_slot()
 
     assert fs.actualarrival - fs.actualdeparture < datetime.timedelta(days=1)
+
+
+
+def test_flight_slots_diff_arrivals(fake):
+    """Tests that the difference between actual and scheduled arrivals makes sense
+    """
+
+    fs = fake.flight_slot()
+    assert (fs.actualarrival >= fs.scheduledarrival)
+    assert (fs.actualarrival - fs.scheduledarrival) <= timedelta(minutes=40)
+
+
+def test_flight_slots_diff_departures(fake):
+    """Tests that the difference between actual and scheduled departures makes sense
+    """
+
+    fs = fake.flight_slot()
+    assert (fs.actualdeparture >= fs.scheduleddeparture)
+    assert (fs.actualdeparture - fs.scheduleddeparture) <= timedelta(minutes=40)
 
 
 def test_flight_slots_arrivals_on_cancellation(fake):
