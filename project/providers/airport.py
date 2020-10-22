@@ -1202,7 +1202,10 @@ class AirportProvider(BaseProvider):
         mid = "_".join(
             [
                 str(self.random_int(max=max_id)),
-                str(self.flight_timestamp() + self.interruption_duration()),
+                str(
+                    self.flight_timestamp(quality=quality)
+                    + self.interruption_duration(quality=quality)
+                ),
             ]
         )
 
@@ -1227,6 +1230,7 @@ class AirportProvider(BaseProvider):
         self,
         interruption_type: T.Optional[str] = None,
         return_type: bool = False,
+        quality="good",
     ) -> T.Union[timedelta, T.Tuple[str, timedelta]]:
         """Returns a time interval specific to some interruption type.
 
@@ -1256,6 +1260,9 @@ class AirportProvider(BaseProvider):
             duration = self.duration(max_days=31, max_hours=23, max_minutes=59)
         else:
             duration = timedelta()
+
+        if quality == "bad":
+            duration = duration * self.random_int(-100, 100)
 
         if return_type:
             return (interruption_type, duration)
@@ -1360,10 +1367,9 @@ class AirportProvider(BaseProvider):
 
         workorderid = self.random_int(max=max_id)
         executiondate = self.flight_timestamp(quality=quality)
-        aircraftregistration=self.aircraft_registration_code(quality=quality)
-        executionplace=self.airport_code(quality=quality)
-        workpackage=self.work_package(quality=quality).workpackageid
-        kind=self.work_order_kind(quality=quality)
+        aircraftregistration = self.aircraft_registration_code(quality=quality)
+        executionplace = self.airport_code(quality=quality)
+        kind = self.work_order_kind(quality=quality)
         workpackage = workpackageid or self.work_package(quality=quality).workpackageid
 
         order = amos.WorkOrder(
@@ -1500,8 +1506,10 @@ class AirportProvider(BaseProvider):
         return amos.MaintenanceEvent(
             maintenanceid=maintenance_id,
             aircraftregistration=ms.aircraftregistration,
-            airport=self.airport_code(),  # R11: Airport must be the same, and not null
-            subsystem=self.ata_code(),
+            airport=self.airport_code(
+                quality=quality
+            ),  # R11: Airport must be the same, and not null
+            subsystem=self.ata_code(quality=quality),
             starttime=ms.scheduleddeparture,
             duration=duration,
             kind=kind,
