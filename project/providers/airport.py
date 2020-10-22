@@ -1349,14 +1349,22 @@ class AirportProvider(BaseProvider):
             file=self.generator.uuid4(), event=oi.maintenanceid
         )  # R4  # R5
 
-    def work_order(self, quality: str = "good", max_id: int = 9999) -> amos.WorkOrder:
+    def work_order(
+        self,
+        quality: str = "good",
+        max_id: int = 9999,
+        work_package: amos.Workpackage = None,
+    ) -> amos.WorkOrder:
 
-        workorderid=self.random_int(max=max_id)
+        workpackageid = getattr(work_package, "workpackageid", None)
+
+        workorderid = self.random_int(max=max_id)
         executiondate = self.flight_timestamp(quality=quality)
         aircraftregistration=self.aircraft_registration_code(quality=quality)
         executionplace=self.airport_code(quality=quality)
         workpackage=self.work_package(quality=quality).workpackageid
         kind=self.work_order_kind(quality=quality)
+        workpackage = workpackageid or self.work_package(quality=quality).workpackageid
 
         order = amos.WorkOrder(
             workorderid=workorderid,
@@ -1385,11 +1393,12 @@ class AirportProvider(BaseProvider):
         workpackageid = getattr(work_package, "workpackageid", None)
 
         order = amos.ForecastedOrder(
-            workorderid=workpackageid or self.random_int(max=max_id),
+            workorderid=self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(quality=quality),
             executiondate=executiondate,
             executionplace=self.airport_code(quality=quality),
-            workpackage=self.work_package(quality=quality).workpackageid,
+            workpackage=workpackageid
+            or self.work_package(quality=quality).workpackageid,
             kind="Forecast",
             deadline=deadline,
             planned=planned,
@@ -1420,11 +1429,12 @@ class AirportProvider(BaseProvider):
         workpackageid = getattr(work_package, "workpackageid", None)
 
         order = amos.TechnicalLogbookOrder(
-            workorderid=workpackageid or self.random_int(max=max_id),
+            workorderid=self.random_int(max=max_id),
             aircraftregistration=self.aircraft_registration_code(quality=quality),
             executiondate=executiondate,
             executionplace=self.airport_code(quality=quality),
-            workpackage=self.work_package(quality=quality).workpackageid,
+            workpackage=workpackageid
+            or self.work_package(quality=quality).workpackageid,
             kind="TechnicalLogBook",
             reporteurclass=self.report_kind(quality=quality),
             reporteurid=self.reporter(quality=quality).reporteurid,
