@@ -298,3 +298,105 @@ def test_distributions_mixed_qualities():
     assert mean(count_noisy) == pytest.approx(30, abs=tol)  # (100)*0.3 ± tol
     assert mean(count_bad) == pytest.approx(10, abs=tol)  # (100)*0.1 ± tol
     assert (mean(count_good) + mean(count_noisy)) == pytest.approx(90, abs=tol)
+
+
+
+def test_work_orders_have_valid_aircraftregistration(config):
+    """Tests that the relation between workorders and maintenanceevents is meaningful
+
+    Check issue #6
+    
+    Basically, we want to test that the following
+
+    ```sql
+    select
+        *
+    from
+        "AMOS".workorders w
+    where
+        not exists (
+        select
+            *
+        from
+            "AMOS".maintenanceevents m2
+        where
+            w.aircraftregistration = m2.aircraftregistration
+            and w.executiondate between starttime and starttime + duration) 
+    ```
+
+    returns nothing, if prob_good = 1
+    returns a proportion of size of prob_bad and prob_noisy, if they are not zero
+    """
+
+
+    config.size = 100
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+
+    assert config._prob_weights == [1, 0, 0]
+
+    # uno de los business rules dice que cada workorders por un aircraft debería
+    # estar dentro de al menos un maintenance events 
+    # (w.executiondate between starttime and starttime+duration).
+    airc_regs_wo = [wo.aircraftregistration for wo in ag.work_orders]
+    airc_regs_me = [me.aircraftregistration for me in ag.maintenance_events]
+
+    # Maintenance event can include several work orders and each work order is 
+    # inside one maintenance event. However, this reference is not explicit. 
+    # It is represented as I said above by the same aircraft registration and 
+    # the fact that the execution date of the work order is inside the time 
+    # interval of the maintenance event (startdate, startdate + duration).
+
+    assert airc_regs_me == airc_regs_wo
+
+
+
+def test_work_orders_have_valid_executiondate(config):
+    """Tests that the relation between workorders and maintenanceevents is meaningful
+
+    this covers the second part of the query
+
+    
+    Basically, we want to test that the following
+
+    ```sql
+    select
+        *
+    from
+        "AMOS".workorders w
+    where
+        not exists (
+        select
+            *
+        from
+            "AMOS".maintenanceevents m2
+        where
+            w.aircraftregistration = m2.aircraftregistration
+            and w.executiondate between starttime and starttime + duration) 
+    ```
+    Check issue #6
+
+    returns nothing, if prob_good = 1
+    returns a proportion of size of prob_bad and prob_noisy, if they are not zero
+    """
+
+
+    config.size = 100
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+
+    assert config._prob_weights == [1, 0, 0]
+
+    wo_execution_date = [wo.executiondate for wo in ag.work_orders]
+    me_airc_starttimes = [me.starttime for me in ag.maintenance_events]
+    me_airc_endtimes = [me.starttime + me.duration for me in ag.maintenance_events]
+
+    # Maintenance event can include several work orders and each work order is 
+    # inside one maintenance event. However, this reference is not explicit. 
+    # It is represented as I said above by the same aircraft registration
+    # 2) and the fact that the execution date of the work order is inside the time 
+    # interval of the maintenance event (startdate, startdate + duration).
+
+    for ed, start, end in zip(wo_execution_date, me_airc_starttimes, me_airc_endtimes):
+        assert ed >= start
+        assert ed <= end
