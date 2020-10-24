@@ -6,6 +6,8 @@ import java.io.FileWriter;
 import java.sql.Timestamp;
 import java.util.*;
 
+import javax.print.event.PrintJobListener;
+
 public class DataGen {
 
     public void generate() {
@@ -409,13 +411,36 @@ public class DataGen {
 
             bw.append("SQL inserts" + "\n");
 
+            // flight and maintenance slots from AIMS
             String outputFlights = "";
             String outputMaintenances = "";
             for (int i = 0; i < SIZE; i++) {
-                if (slotKinds[i].equalsIgnoreCase("Flight"))
-                    outputFlights += "(" + "'" + aircraftRegs[i] + "'" + "," + "'" + scheduledDepartures[i] + "'" + "," + "'" + scheduledArrivals[i] + "'" + "," + "'" + slotKinds[i] + "'" + "," + "'" + flightIDs[i] + "'" + "," + "'" + originDest[i].first + "'" + "," + "'" + originDest[i].second + "'" + "," + "'" + actualDepartures[i] + "'" + "," + "'" + actualArrivals[i] + "'" + "," + canceled[i] + "," + "'" + delayCodes[i] + "'" + "," + passengers[i] + "," + cabinCrew[i] + "," + flightCrew[i] + "),\n";
-                else if (slotKinds[i].equalsIgnoreCase("Maintenance"))
-                    outputMaintenances += "(" + "'" + aircraftRegs[i] + "'" + "," + "'" + scheduledDepartures[i] + "'" + "," + "'" + scheduledArrivals[i] + "'" + "," + "'" + slotKinds[i] + "'" + "," + programmed[i] + "),\n";
+                if (slotKinds[i].equalsIgnoreCase("Flight")){
+                    outputFlights += "(" + 
+                    "'" + aircraftRegs[i] + "'" + 
+                    "," + "'" + scheduledDepartures[i] + "'" + 
+                    "," + "'" + scheduledArrivals[i] + "'" + 
+                    "," + "'" + slotKinds[i] + "'" + 
+                    "," + "'" + flightIDs[i] + "'" + 
+                    "," + "'" + originDest[i].first + "'" + 
+                    "," + "'" + originDest[i].second + "'" + 
+                    "," + "'" + actualDepartures[i] + "'" + 
+                    "," + "'" + actualArrivals[i] + "'" + 
+                    "," + canceled[i] + 
+                    "," + "'" + delayCodes[i] + "'" + 
+                    "," + passengers[i] + 
+                    "," + cabinCrew[i] + 
+                    "," + flightCrew[i] + 
+                    "),\n";
+                }
+                else if (slotKinds[i].equalsIgnoreCase("Maintenance")){
+                    outputMaintenances += "(" + 
+                    "'" + aircraftRegs[i] + "'" + "," 
+                    + "'" + scheduledDepartures[i] + "'" + ","
+                    + "'" + scheduledArrivals[i] + "'" + ","
+                    + "'" + slotKinds[i] + "'" + ","
+                    + programmed[i] + "),\n";
+                }
 
             }
             bw.append("FLIGHTS" + "\n");
@@ -429,44 +454,57 @@ public class DataGen {
 
             System.out.println("Maintenance finished!");
 
+            // operatinal interruptions from AMOS
             String outputOI = "";
             for (int i = 0; i < SIZE; i++) {
-                if (i % 10 != 0) continue;
+                if (i % 10 != 0) continue; // what?
                 // see rule R15
-                // In MaintenanceEvents, maintenance duration must have the expected length according to the kind of maintenance:
-                if (slotKinds[i].equalsIgnoreCase("Maintenance") || delays[i] > 0)
+                // In MaintenanceEvents, maintenance duration must have the expected
+                // length according to the kind of maintenance:
+                if (slotKinds[i].equalsIgnoreCase("Maintenance") || delays[i] > 0){
 
+                    // if it is a maintenance with more than 0 days
+                    // then it is a "Revision" maintenance event or "Safety" revision
                     if (days[i] > 0) {
-
+                        // this is producing one entry in operational interruptions per day
                         for (int j = 0; j < days[i]; j++) {
-
+                            
                             java.util.Calendar c = java.util.Calendar.getInstance();
                             c.setTime(starttimes[i]);
+                            //c goes to starttime + duration
                             c.add(java.util.Calendar.DAY_OF_MONTH, j); // TODO: why this approach and not just days[i] like below?
                             c.set(java.util.Calendar.HOUR_OF_DAY, 0);
                             c.set(java.util.Calendar.MINUTE, 0);
                             c.set(java.util.Calendar.SECOND, 0);
                             c.set(java.util.Calendar.MILLISECOND, 0);
-
-
+                            
+                            // gets converted to a timestamp
                             Timestamp newStarttime = new Timestamp(c.getTimeInMillis());
-
-                            outputOI += "(" + maintenanceID[i] + "_" + newStarttime + ","
-                                    + "'" + aircraftRegs[i] + "'" + ","
-                                    + "'" + airportMaintenance[i] + "'" + ","
-                                    + "'" + subsystem[i] + "'" + ","
-                                    + "'" + newStarttime + "'" + ","
-                                    + "'1:0:0'" + ","
-                                    + "'" + maintenanceKinds[i] + "'" + "," +
-                                    "'" + flightIDs[i] + "'" + ","
-                                    + "'" + departure[i] + "'" + ","
-                                    + "'" + delayCodes[i] + "'" + "),\n";
-
+                            
+                            // defining what gets printed!
+                            // this is for AMOS.operationinterruption
+                            outputOI += "(" 
+                            + maintenanceID[i] + "_" + newStarttime + "," // concatenation
+                            + "'" + aircraftRegs[i] + "'" + "," // aircraftregistration
+                                    + "'" + airportMaintenance[i] + "'" + "," // airport
+                                    + "'" + subsystem[i] + "'" + "," // subsystem
+                                    + "'" + newStarttime + "'" + "," // starttime
+                                    + "'1:0:0'" + ","   // duration, set to one day each since we are iterating over days
+                                    + "'" + maintenanceKinds[i] + "'" + "," + //kind
+                                    "'" + flightIDs[i] + "'" + "," // flightid
+                                    + "'" + departure[i] + "'" + "," // departure
+                                    + "'" + delayCodes[i] + "'" + // delaycode
+                                    "),\n"; 
+                                    
+                                    // the first entry that goes in OIs, gets a new entry in 
+                                    // attachments
                             if (j == 0)
+                                // **R5**: event of an Attachment is a reference to maintenanceID of MaintenanceEvents.
                                 attachment_events[i][j] = maintenanceID[i] + "_" + newStarttime; // TODO: is the for loop above only to populate attachment events?
                         }
 
-                        // TODO: is this an error? why is it not adding the days and minutes?
+                        // if delay is a number of days, hours and minutes, means that this 
+                        // maintenance event is either a AOG, Delay, or Maintenance
                         if (hours[i] > 0 || minutes[i] > 0) {
                             java.util.Calendar c = java.util.Calendar.getInstance();
                             c.setTime(starttimes[i]);
@@ -476,26 +514,28 @@ public class DataGen {
                             c.set(java.util.Calendar.SECOND, 0);
                             c.set(java.util.Calendar.MILLISECOND, 0);
 
-
                             Timestamp newStarttime = new Timestamp(c.getTimeInMillis());
 
                             //int dur = hours[i]*60 + minutes[i];
 
-                            outputOI += "(" + maintenanceID[i] + "_" + newStarttime +
-                                    "," + "'" + aircraftRegs[i] + "'" +
-                                    "," + "'" + airportMaintenance[i] + "'" +
-                                    "," + "'" + subsystem[i] + "'" +
-                                    "," + "'" + newStarttime + "'" +
-                                    "," + "'0:" + hours[i] + ":" + minutes[i] + "'" +
-                                    "," + "'" + maintenanceKinds[i] + "'" +
-                                    "," +
-                                    "'" + flightIDs[i] + "'" +
-                                    "," + "'" + departure[i] + "'" +
-                                    "," + "'" + delayCodes[i] + "'" + "),\n";
+                            outputOI += "(" + 
+                                    maintenanceID[i] + "_" + newStarttime + // maintenanceid
+                                    "," + "'" + aircraftRegs[i] + "'" + // aircraftregistration
+                                    "," + "'" + airportMaintenance[i] + "'" + // airport
+                                    "," + "'" + subsystem[i] + "'" + // subsystem
+                                    "," + "'" + newStarttime + "'" + // starttime
+                                    "," + "'0:" + hours[i] + ":" + minutes[i] + "'" + // duration
+                                    "," + "'" + maintenanceKinds[i] + "'" + // kind
+                                    "," + "'" + flightIDs[i] + "'" + // flightid
+                                    "," + "'" + departure[i] + "'" + // departure
+                                    "," + "'" + delayCodes[i] + "'" + "),\n"; // delaycode
                         }
-
-                    } else {
-                        outputOI += "(" + maintenanceID[i] + "_" + starttimes[i] + ","
+                    }
+                // if days == 0, then we have 
+                } else {
+                        // System.out.println("days are not > 0!, days[i]=" + days[i]);
+                        String tempOI = "(" + 
+                                maintenanceID[i] + "_" + starttimes[i] + "," 
                                 + "'" + aircraftRegs[i] + "'" + ","
                                 + "'" + airportMaintenance[i] + "'" + ","
                                 + "'" + subsystem[i] + "'" + ","
@@ -505,8 +545,9 @@ public class DataGen {
                                 + "'" + flightIDs[i] + "'" + ","
                                 + "'" + departure[i] + "'" + ","
                                 + "'" + delayCodes[i] + "'" + "),\n";
-                    }
-
+                        outputOI += tempOI;
+                        // System.out.println(tempOI);
+                        }
             }
 
             bw.append("\n");
@@ -514,8 +555,10 @@ public class DataGen {
             bw.append(outputOI.replaceAll("'null'", "null"));
             System.out.println("OIs finished");
 
+            // begin inserting attachments
             String attachments = "";
             for (int i = 0; i < SIZE; i++) {
+                // if the slot is a maintenance slot
                 if (slotKinds[i].equalsIgnoreCase("Maintenance") || delays[i] > 0) {
                     for (int j = 0; j < MAX_ATTCH_SIZE; j++) {
                         attachments += "("
@@ -525,23 +568,28 @@ public class DataGen {
 
                 }
             }
+
             bw.append("\n");
             bw.append("ATTACHMENTS" + "\n");
             bw.append(attachments.replaceAll("'null'", "null"));
             System.out.println("Attachements finished!");
 
-
+            // begin inserting work packages
             String workPackages = "";
             String forecastedOrders = "";
             String technicalLogBookOrders = "";
 
             for (int i = 0; i < SIZE; i++) {
+                // slot is maintenance slot
                 if (slotKinds[i].equalsIgnoreCase("Maintenance") || delays[i] > 0) {
-                    workPackages += "(" + workPackageIDs[i] + ","
+                    workPackages += "(" 
+                            + workPackageIDs[i] + ","
                             + "'" + executionDates[i] + "'" + ","
                             + "'" + executionPlaces[i] + "'" + "),\n";
-
+                    
+                    // for each workpackage, write a number of workorders
                     for (int j = 0; j < MAX_WORK_ORDERS; j++) {
+                        // if the workorder is a forecasted order
                         if (workOrder_workOrderKinds[i][j].equalsIgnoreCase("Forecast"))
                             forecastedOrders +=
                                     "(" + workOrderIDs[i][j] + ","
@@ -556,9 +604,12 @@ public class DataGen {
                                     + "'" + workOrder_frequencyUnits[i][j] + "'" + ","
                                     + workOrder_forecastedManHours[i][j] + "),\n";
                         else if (workOrder_workOrderKinds[i][j].equalsIgnoreCase("TechnicalLogBook"))
-                            technicalLogBookOrders += "(" + workOrderIDs[i][j] + ","
-                                    + "'" + workOrder_aircraftRegs[i][j] + "'" + ","
-                                    + "'" + workOrder_executionDates[i][j] + "'" + ","
+                        {    
+                            // technical logbook orders from workorders
+                            technicalLogBookOrders += "(" 
+                            + workOrderIDs[i][j] + ","
+                            + "'" + workOrder_aircraftRegs[i][j] + "'" + ","
+                            + "'" + workOrder_executionDates[i][j] + "'" + ","
                                     + "'" + workOrder_executionPlaces[i][j] + "'" + ","
                                     + workOrder_workPackageIDs[i][j] + ","
                                     + "'" + workOrder_workOrderKinds[i][j] + "'" + ","
@@ -568,8 +619,8 @@ public class DataGen {
                                     + workOrder_deferreds[i][j] + ","
                                     + "'" + workOrder_MELs[i][j] + "'" + ","
                                     + "'" + workOrder_reportingDate[i][j] + "'" + "),\n";
-                    }
-
+                                }
+                            }
                 }
             }
             bw.append("\n");
