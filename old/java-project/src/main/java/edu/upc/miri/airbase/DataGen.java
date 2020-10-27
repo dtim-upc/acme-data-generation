@@ -89,7 +89,6 @@ public class DataGen {
 ////			System.out.println(ar);
 //
 
-
         // arrival,  departure, delayCode, canceled
         long diff = end - offset + 1;
 
@@ -332,7 +331,6 @@ public class DataGen {
                             default:
                                 cal.add(GregorianCalendar.DAY_OF_YEAR, -5);
                                 // date manipulation
-
                         }
 
 //					 System.out.println(workOrder_MELs[i][j]);
@@ -352,6 +350,8 @@ public class DataGen {
                 //if flight
                 //if (!slotKinds[i].equalsIgnoreCase("Flight")) continue;
 
+
+                // if slot is a flightslot
                 String origin = airportCodes[r.nextInt(airportCodes.length)];
                 String dest = airportCodes[r.nextInt(airportCodes.length)];
                 while (origin.equalsIgnoreCase(dest)) {
@@ -359,7 +359,10 @@ public class DataGen {
                 }
                 originDest[i] = new Pair(origin, dest);
                 if (!orgDestToFlightNo.containsKey(origin + "-" + dest)) {
-                    String flightNo = digits.charAt(r.nextInt(10)) + "" + digits.charAt(r.nextInt(10)) + digits.charAt(r.nextInt(10)) + digits.charAt(r.nextInt(10));
+                    String flightNo = digits.charAt(r.nextInt(10)) + "" + 
+                        digits.charAt(r.nextInt(10)) + 
+                        digits.charAt(r.nextInt(10)) + 
+                        digits.charAt(r.nextInt(10));
                     orgDestToFlightNo.put(origin + "-" + dest, flightNo);
                 }
 
@@ -441,7 +444,6 @@ public class DataGen {
                     + "'" + slotKinds[i] + "'" + ","
                     + programmed[i] + "),\n";
                 }
-
             }
             bw.append("FLIGHTS" + "\n");
             bw.append(outputFlights.replaceAll("'null'", "null"));
@@ -461,14 +463,15 @@ public class DataGen {
                 // see rule R15
                 // In MaintenanceEvents, maintenance duration must have the expected
                 // length according to the kind of maintenance:
+                // if slotkind is maintenance, then it goes to operational interruption
                 if (slotKinds[i].equalsIgnoreCase("Maintenance") || delays[i] > 0){
 
-                    // if it is a maintenance with more than 0 days
-                    // then it is a "Revision" maintenance event or "Safety" revision
+                    // if it is a maintenance slot with more than 0 days
+                    // then it is a "Revision" maintenance
+                    // R14
                     if (days[i] > 0) {
                         // this is producing one entry in operational interruptions per day
                         for (int j = 0; j < days[i]; j++) {
-                            
                             java.util.Calendar c = java.util.Calendar.getInstance();
                             c.setTime(starttimes[i]);
                             //c goes to starttime + duration
@@ -483,6 +486,7 @@ public class DataGen {
                             
                             // defining what gets printed!
                             // this is for AMOS.operationinterruption
+                            // this should be a revision
                             outputOI += "(" 
                             + maintenanceID[i] + "_" + newStarttime + "," // concatenation
                             + "'" + aircraftRegs[i] + "'" + "," // aircraftregistration
@@ -504,7 +508,7 @@ public class DataGen {
                         }
 
                         // if delay is a number of days, hours and minutes, means that this 
-                        // maintenance event is either a AOG, Delay, or Maintenance
+                        // maintenance event is either a "AircraftOnGround", "Maintenance"
                         if (hours[i] > 0 || minutes[i] > 0) {
                             java.util.Calendar c = java.util.Calendar.getInstance();
                             c.setTime(starttimes[i]);
@@ -533,18 +537,18 @@ public class DataGen {
                     }
                 // if days == 0, then we have 
                 } else {
-                        // System.out.println("days are not > 0!, days[i]=" + days[i]);
+                        // if it is a flight slot
                         String tempOI = "(" + 
-                                maintenanceID[i] + "_" + starttimes[i] + "," 
-                                + "'" + aircraftRegs[i] + "'" + ","
-                                + "'" + airportMaintenance[i] + "'" + ","
-                                + "'" + subsystem[i] + "'" + ","
-                                + "'" + starttimes[i] + "'" + ","
-                                + "'" + days[i] + ":" + hours[i] + ":" + minutes[i] + "'" + ","
-                                + "'" + maintenanceKinds[i] + "'" + ","
-                                + "'" + flightIDs[i] + "'" + ","
-                                + "'" + departure[i] + "'" + ","
-                                + "'" + delayCodes[i] + "'" + "),\n";
+                                maintenanceID[i] + "_" + starttimes[i] + "," // maintenanceID
+                                + "'" + aircraftRegs[i] + "'" + "," // aircraftregstration
+                                + "'" + airportMaintenance[i] + "'" + "," // airport
+                                + "'" + subsystem[i] + "'" + "," // subsystem
+                                + "'" + starttimes[i] + "'" + "," // starttimes
+                                + "'" + days[i] + ":" + hours[i] + ":" + minutes[i] + "'" + "," //duration
+                                + "'" + maintenanceKinds[i] + "'" + "," // kind
+                                + "'" + flightIDs[i] + "'" + "," //flightid
+                                + "'" + departure[i] + "'" + "," //departure
+                                + "'" + delayCodes[i] + "'" + "),\n"; // delaycode
                         outputOI += tempOI;
                         // System.out.println(tempOI);
                         }
@@ -565,7 +569,6 @@ public class DataGen {
                                 + "'" + attachment_files[i][j] + "'" + ","
                                 + attachment_events[i][j] + "),\n";
                     }
-
                 }
             }
 
@@ -603,6 +606,7 @@ public class DataGen {
                                     + workOrder_frequencies[i][j] + ","
                                     + "'" + workOrder_frequencyUnits[i][j] + "'" + ","
                                     + workOrder_forecastedManHours[i][j] + "),\n";
+
                         else if (workOrder_workOrderKinds[i][j].equalsIgnoreCase("TechnicalLogBook"))
                         {    
                             // technical logbook orders from workorders
