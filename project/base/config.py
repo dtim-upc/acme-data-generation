@@ -24,15 +24,16 @@ class BaseConfig:
     # ---------------------------------------------------------------------------- #
 
     size: int = 1000  # base size
-    flight_slots_size: int = None
-    maintenance_slots_size: int = None
-    maintenance_events_size: int = None
-    tlb_orders_size: int = None
-    forecasted_orders_size: int = None
+    flight_slots_size: T.Optional[int] = None
+    maintenance_slots_size: T.Optional[int] = None
+    tlb_orders_size: T.Optional[int] = None
+    forecasted_orders_size: T.Optional[int] = None
+    work_packages_size: T.Optional[int] = None
     # ois_events_size is controlled by flight_slots_size
     # maintenance_events_size is controlled by maintenance_slots_size
     max_attch_size: int = 1
     max_work_orders: int = 1
+    proba_forecast: float = 0.5
 
     # ---------------------------------------------------------------------------- #
     #                            other sensible defaults                           #
@@ -73,7 +74,11 @@ class BaseConfig:
             self.flight_slots_size = self.size
         if self.maintenance_slots_size is None:
             self.maintenance_slots_size = self.size
-        if self.maintenance_events_size is None:
-            self.maintenance_events_size = self.size
+        if self.tlb_orders_size is None:
+            self.tlb_orders_size = self.size
+        if self.forecasted_orders_size is None:
+            self.forecasted_orders_size = self.size
+        if self.work_packages_size is None:
+            self.work_packages_size = self.size
 
         self._prob_weights = [self.prob_good, self.prob_noisy, self.prob_bad]

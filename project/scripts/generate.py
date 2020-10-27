@@ -2,18 +2,18 @@ import csv
 import logging
 import random
 import typing as T
+from datetime import timedelta
 from itertools import chain
 from pathlib import Path
 
 from faker import Faker
-from sqlalchemy import create_engine
-from tqdm import tqdm
-
 from project.base.config import BaseConfig
-from project.models.declarative import aims, amos
 from project.models.data.serializable import Manufacturer, Reporter
+from project.models.declarative import aims, amos
 from project.providers.airport import fake_airport
 from project.scripts.db_utils import get_session
+from sqlalchemy import create_engine
+from tqdm import tqdm
 
 
 class AircraftGenerator:
@@ -59,89 +59,142 @@ class AircraftGenerator:
     def populate(self) -> "AircraftGenerator":
 
         # Creates a list of random Manufacturers
-        # This is intended to be stored and used in aircraft-manufacturerinfo-lookup.csv
+        # This is intended to be stored and used 
+        # in aircraft-manufacturerinfo-lookup.csv
 
         # -------------------------- aircraft manufacturers ------------------ #
 
         self.manufacturers = [
-            fake_airport.manufacturer() for _ in range(self.config.fleet_size)
+            fake_airport.manufacturer(
+                fake_airport.quality(self.config._prob_weights))
+                for _ in range(self.config.fleet_size)
         ]
 
         # from these manufacturers, we obtain a list of aircraft_registration_codes
         # from which we obtain slots
 
-        self.slots = []
         self.flight_slots = []
         self.maintenance_slots = []
 
         # ------------------------------- flight slots ----------------------- #
 
         logging.info("Generating flight slots")
+
         for _ in tqdm(range(self.config.flight_slots_size)):
-            slot = fake_airport.flight_slot(
+            flight_slot = fake_airport.flight_slot(
                 manufacturer=fake_airport.random_element(self.manufacturers),
-                quality=fake_airport.random_quality(self.config._prob_weights),
+                quality=fake_airport.quality(self.config._prob_weights),
             )
-            self.flight_slots.append(slot)
+            self.flight_slots.append(flight_slot)
 
         # ----------------------------- maintenance slots -------------------- #
 
         logging.info("Generating maintenance slots")
         for _ in tqdm(range(self.config.maintenance_slots_size)):
-            slot = fake_airport.maintenance_slot(
+            maintenance_slot = fake_airport.maintenance_slot(
                 manufacturer=fake_airport.random_element(self.manufacturers),
-                quality=fake_airport.random_quality(self.config._prob_weights),
+                quality=fake_airport.quality(self.config._prob_weights),
             )
-            self.maintenance_slots.append(slot)
-
-        # ----------------------------- all slots ---------------------------- #
-
-        logging.info("Generating slots")
-        # https://stackoverflow.com/a/56735440/5819113
-        self.slots = [
-            aims.Slot.from_child(obj)
-            for obj in tqdm(chain(self.flight_slots, self.maintenance_slots))
-        ]
+            self.maintenance_slots.append(maintenance_slot)
 
         # ------------------------- operational interruptions ---------------- #
 
+        # from the existing slots, create an operational interruption
+        # if flight slot, produces an operational interruption
+        # if maintenance slot, produces a maintenance slot
         self.operational_interruptions = []
         self.maintenance_events = []
 
-        # from the existing flight slots, create an operational interruption and
-        # a maintenance event
-
         logging.info("Generating operational interruptions")
         for flight_slot in tqdm(self.flight_slots):
-            # produce a number of operational interruptions
-            oi = fake_airport.operational_interruption_event(
-                max_id=self.config.size,
-                flight_slot=flight_slot,
-                quality=fake_airport.random_quality(self.config._prob_weights),
-            )
-
-            self.operational_interruptions.append(oi)
-            self.maintenance_events.append(amos.MaintenanceEvent.from_child(oi))
-
-        # ---------------------------- maintenance events -------------------- #
-
-        # from each of the existing maintenance slots, create a maintenance event
-
-        logging.info("Generating maintenance events")
+            # R13: If flight slot has some delay, that introduces 
+            # an operational interruption of some kind
+            if flight_slot.delaycode is not None:
+                operational_interruption = fake_airport.operational_interruption_event(
+                    max_id=self.config.size,
+                    slot=flight_slot,
+                    quality=fake_airport.quality(self.config._prob_weights),
+                )
+                self.operational_interruptions.append(operational_interruption)
 
         for maintenance_slot in tqdm(self.maintenance_slots):
-            m = fake_airport.maintenance_event(
+            # maintenance slots produce only maintenance events
+            # TODO: insert operational interruption with some attributes being non-meaningful?
+            # TODO: like a a maintenance_slot does not have a flight ID per table definition, should
+            # TODO: we create a random flightid? What's the flightID if not then?
+            
+            maintenance_event = fake_airport.maintenance_event(
                 max_id=self.config.size,
-                maintenance_slot=maintenance_slot,
-                quality=fake_airport.random_quality(self.config._prob_weights),
+                slot=maintenance_slot,
+                quality=fake_airport.quality(self.config._prob_weights),
             )
-            self.maintenance_events.append(m)
+
+            # R14
+            if maintenance_event.kind == "Revision":
+                # split duration in number of days
+                assert maintenance_event.duration.days >= 1
+                # add an extra day if there is a non integer number of days
+                extra_day = (1 if bool(maintenance_event.duration.total_seconds() % (24*60*60)) else 0)
+                _splitted_maintenance_events = [maintenance_event] * (maintenance_event.duration.days + extra_day)
+
+                for event_chunk in _splitted_maintenance_events:
+                    event_chunk.duration = timedelta(days=1)
+                    self.maintenance_events.append(event_chunk)
+            else:
+                self.maintenance_events.append(maintenance_event)
+
+        # ---------------------------------------------------------------------------- #
+        #                                  work orders                                 #
+        # ---------------------------------------------------------------------------- #
+
+        self.forecasted_orders = []
+        self.tlb_orders = []
+
+        # ----------------  technical logbook orders ----------------------- #
+
+        # We produce a number of work orders equal to maintenance events
+        # and we sample the type using probabilities
+
+        proba_fo = self.config.proba_forecast_order
+        
+        logging.info(
+            "Generating work orders"
+        )
+
+        # only maintenance events produce work orders, operationalinterruptions don't
+        for maintenance_event in tqdm(self.maintenance_events):
+            
+            order_kind = ("Forecast" if random.random() < proba_fo else "TechnicalLogBook")
+            order = fake_airport.work_order(
+                max_id=len(self.maintenance_events),
+                quality=fake_airport.quality(self.config._prob_weights),
+                maintenance_event=maintenance_event,
+                kind=order_kind
+            )
+
+            if order_kind == "Forecast":
+                self.forecasted_orders.append(order)
+            else:
+                self.tlb_orders.append(order)
+
+        # ------------------------------- work packages ------------------------------ #
+
+        logging.info("Generating work packages")
+        self.work_packages = []
+
+        for _ in tqdm(range(self.config.work_packages_size)):
+            work_package = fake_airport.work_package(
+                quality=fake_airport.quality(self.config._prob_weights),
+                max_id=self.config.size)
+            
+            self.work_packages.append(work_package)
 
         # ---------------------------- create attachments -------------------- #
 
         self.attachments = []
 
         logging.info("Generating attachments")
+
         for oi in tqdm(self.operational_interruptions):
             event_attachments = []
             logging.debug(f"Generating attachments for oi '{oi.maintenanceid}'")
@@ -152,61 +205,6 @@ class AircraftGenerator:
             # we don't want nested lists
             self.attachments.extend(event_attachments)
 
-        # ------------------------------- work packages ------------------------------ #
-
-        logging.info("Generating work packages")
-        self.work_packages = []
-
-        # for every maintenance event, we create a work package
-        for maintenance_event in tqdm(self.maintenance_events):
-            work_package = fake_airport.work_package(
-                quality=fake_airport.random_quality(self.config._prob_weights),
-                max_id=self.config.size,
-                maintenance_event=maintenance_event,
-            )
-            self.work_packages.append(work_package)
-
-        # ---------------- work orders from tlb and forecasted orders -------- #
-
-        # every work package is linked to at least one work order
-        # that is, each one of tlb and forecast orders must be linked to a workpackage
-        self.forecasted_orders = []
-        self.work_orders = []
-        self.tlb_orders = []
-
-        logging.info(
-            "Generating technical logbook orders and their work order relatives"
-        )
-
-        # so we want to produce a number of tlb and forecasted orders that add up to the number
-        # of work orders which is the same number as work packages
-        # we will do it 50%/50% approx
-
-        _tlb_wp_size_end = round(len(self.work_packages) * 0.5)
-        _forecast_wp_start = len(self.work_packages) - _tlb_wp_size_end
-
-        for tlb_work_package in tqdm(self.work_packages[:_tlb_wp_size_end]):
-            fake_tlb = fake_airport.technical_logbook_order(
-                max_id=self.config.maintenance_events_size,
-                quality=fake_airport.random_quality(self.config._prob_weights),
-                work_package=tlb_work_package,
-            )
-
-            self.tlb_orders.append(fake_tlb)
-            self.work_orders.append(amos.WorkOrder.from_child(fake_tlb))
-
-        # ----------------------------- forecasted orders -------------------- #
-
-        logging.info("Generating forecasted orders and their work_orders relatives")
-        for fo_work_package in tqdm(self.work_packages[_forecast_wp_start:]):
-            fake_fo = fake_airport.forecasted_order(
-                max_id=self.config.maintenance_slots_size,
-                quality=fake_airport.random_quality(self.config._prob_weights),
-                work_package=fo_work_package,
-            )
-
-            self.forecasted_orders.append(fake_fo)
-            self.work_orders.append(amos.WorkOrder.from_child(fake_fo))
 
         logging.info("Done")
         return self

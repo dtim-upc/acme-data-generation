@@ -71,13 +71,21 @@ that it has been tested
 - [x] **R19**: In a Slot, scheduledArrival must be posterior to the scheduledDeparture.
 - [ ] **R20**: Two Slots of the same aircraft cannot overlap in time.
   - [ ] How do we check this? with a posterior check and a test.
-- [ ] **R21**: In Flights, departure and arrival airports must be those in the flightID (unless this flight has been diverted).
+- [ ] **R21**: In Flights, departure and arrival airports must be those in the flightID (unless this flight has been diverted)
   - [ ] TODO: what does it mean that it has been diverted? We assume that some flights can be diverted, and that the flightID has the original information i.e. with some airport A and the actual airport stored is different i.e. B.
 - [x] **R22**: In a Flight, actualArrival is posterior to actualDeparture.
   - [x] **R22-B**: If a flight is marked as cancelled, then there is no delay code, no actual arrival and no actual departure reported.
 - [ ] **R23**: In a Maintenance Slot, the corresponding events must exist in AMOS maintenance events, inside the corresponding time interval.
   - This means that a row in `MaintenanceSlots` induces a maintenance event in `MaintenanceEvents` within the same time interval
-
+- [ ] **R25**: A Maintenance event can include several work orders and each work order is inside one maintenance event. However, this reference is not explicit. It is represented by
+  - [ ] **R25-A** the same aircraft registration
+  - [ ] **R25-B** the fact that the execution date of the work order is inside the time interval of the maintenance event (startdate, startdate + duration).[See issue #6 for more details](https://github.com/diegoquintanav/acme-data-generation/issues/6)
+  - [ ] **R25-C** The execution place of the work order is the airport of the maintenance event TODO: confirm this
+- [ ] **R26**: In ForecastedOrders, the `deadline` is such that `executiondate` < `deadline` < `maintenanceevent.starttime + maintenanceevent.duration`
+- [ ] **R27**: In ForecastedOrders, `planned` is equal to `maintenanceevent.starttime + maintenanceevent.duration`
+- [ ] **R28**: In TLBOrders, `reportingdate` is equal to `maintenanceevent.starttime`. That is, `reportingdate < starttime`
+- [ ] **R29**: In TLBOrders, `due` is the `executiondate` + a MEL based duration (i.e. the max delay allowed)
+  
 ## Configuration Requirements
 
 These refer to any requirement related to control the data generation process.
