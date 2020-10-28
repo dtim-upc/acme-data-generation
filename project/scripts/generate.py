@@ -58,17 +58,29 @@ class AircraftGenerator:
 
     def populate(self) -> "AircraftGenerator":
 
-        # Creates a list of random Manufacturers
-        # This is intended to be stored and used 
-        # in aircraft-manufacturerinfo-lookup.csv
+        # --------------------------- maintenance personnel -------------------#
+
+        logging.info("Generating maintenance personnel list")
+
+        self.maintenance_personnel = []
+
+        for _ in tqdm(range(self.config.personnel_list_size)):
+            self.maintenance_personnel.append(
+                fake_airport.reporter(
+                    quality=fake_airport.quality(self.config._prob_weights)))
 
         # -------------------------- aircraft manufacturers ------------------ #
 
-        self.manufacturers = [
-            fake_airport.manufacturer(
-                fake_airport.quality(self.config._prob_weights))
-                for _ in range(self.config.fleet_size)
-        ]
+        # Creates a list of random Manufacturers
+        # This is intended to be stored and used 
+        # in aircraft-manufacturerinfo-lookup.csv
+        logging.info("Generating aircraft fleet")
+
+        self.manufacturers = []
+        for _ in tqdm(range(self.config.fleet_size)):
+            self.manufacturers.append(
+                fake_airport.manufacturer(
+                    quality=fake_airport.quality(self.config._prob_weights)))
 
         # from these manufacturers, we obtain a list of aircraft_registration_codes
         # from which we obtain slots
@@ -106,6 +118,7 @@ class AircraftGenerator:
         self.maintenance_events = []
 
         logging.info("Generating operational interruptions")
+
         for flight_slot in tqdm(self.flight_slots):
             # R13: If flight slot has some delay, that introduces 
             # an operational interruption of some kind
@@ -116,6 +129,8 @@ class AircraftGenerator:
                     quality=fake_airport.quality(self.config._prob_weights),
                 )
                 self.operational_interruptions.append(operational_interruption)
+        
+        logging.info("Generating maintenance events")
 
         for maintenance_slot in tqdm(self.maintenance_slots):
             # maintenance slots produce only maintenance events

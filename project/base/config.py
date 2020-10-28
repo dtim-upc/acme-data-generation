@@ -49,6 +49,7 @@ class BaseConfig:
     max_fcrew: int = 3
     min_fcrew: int = 2
     fleet_size: int = 20
+    personnel_list_size: int = 500
     prob_flight_slot: float = attr.ib(0.4, validator=check_probability)
     prob_tlb: float = attr.ib(0.5, validator=check_probability)
 

@@ -13,6 +13,10 @@ from project.models.data.serializable import Manufacturer, Reporter
 
 
 class AirportProvider(BaseProvider):
+
+    """A provider to be used with a Faker instance
+    """
+
     def random_string(
         self,
         str_size: int = 5,
@@ -1315,7 +1319,8 @@ class AirportProvider(BaseProvider):
         """
 
         return Reporter(
-            reporteurid=self.random_int(), airport=self.airport_code(quality=quality)
+            reporteurid=self.random_int(), 
+            airport=self.airport_code(quality=quality)
         )
 
     # ---------------------------------------------------------------------------- #
@@ -1384,12 +1389,6 @@ class AirportProvider(BaseProvider):
         # R25-A
         aircraft_registration = maintenance_event.aircraftregistration
 
-        # R25-B
-        executiondate = self.generator.date_time_ad(
-            start_datetime=maintenance_event.starttime,
-            end_datetime=maintenance_event.starttime + maintenance_event.duration,
-        )
-
         # R25-C
         executionplace = maintenance_event.airport
         
@@ -1399,15 +1398,18 @@ class AirportProvider(BaseProvider):
 
         if kind == "Forecast":
 
+            # R27
+            planned = maintenance_event.starttime
+            
             # R26
-            deadline = self.generator.date_time_ad(
-                start_datetime=executiondate,
-                end_datetime=maintenance_event.starttime + maintenance_event.duration,
+            deadline = planned + maintenance_event.duration
+
+            # R25-B
+            executiondate = self.generator.date_time_ad(
+                start_datetime=planned,
+                end_datetime=deadline,
             )
 
-            # R27
-            planned = maintenance_event.starttime + maintenance_event.duration
-            
             fo = amos.ForecastedOrder(
                 workorderid=workorderid,
                 aircraftregistration=aircraft_registration,
@@ -1430,7 +1432,14 @@ class AirportProvider(BaseProvider):
             reportingdate = maintenance_event.starttime
             
             # R29
-            due = executiondate + self.mel_reporting_deadline_duration(mel_type=mel, quality=quality)
+            due = maintenance_event.starttime + maintenance_event.duration
+            due += self.mel_reporting_deadline_duration(mel_type=mel, quality=quality)
+
+            # R25-B
+            executiondate = self.generator.date_time_ad(
+                start_datetime=reportingdate,
+                end_datetime=due,
+            )
 
             tlb = amos.TechnicalLogbookOrder(
                 workorderid=workorderid,
@@ -1465,14 +1474,12 @@ class AirportProvider(BaseProvider):
         self,
         max_id: int = 9999,
         quality: str = "good",
-        work_package: T.Optional[amos.Workpackage] = None,
         maintenance_event: T.Optional[amos.MaintenanceEvent] = None,
     ) -> amos.ForecastedOrder:
 
         fo = self.work_order(
             max_id=max_id, 
             quality=quality,
-            work_package=work_package,
             maintenance_event=maintenance_event,
             kind="Forecast")
 
@@ -1482,14 +1489,12 @@ class AirportProvider(BaseProvider):
         self,
         max_id: int = 9999,
         quality: str = "good",
-        work_package: T.Optional[amos.Workpackage] = None,
         maintenance_event: T.Optional[amos.MaintenanceEvent] = None,
     ) -> amos.TechnicalLogbookOrder:
 
         tlb = self.work_order(
             max_id=max_id, 
             quality=quality,
-            work_package=work_package,
             maintenance_event=maintenance_event,
             kind="TechnicalLogBook")
 
@@ -1528,7 +1533,7 @@ class AirportProvider(BaseProvider):
             if quality == "bad":
                 airport = self.airport_code(quality=quality)
             elif quality == "noisy":
-                airport = self.make_noisy(slot.departureairport, max_whitespace=2)
+                airport = self.make_noisy(slot.departureairport, max_whitespace=0)
             else:
                 airport = slot.departureairport
 
