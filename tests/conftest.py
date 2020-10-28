@@ -18,7 +18,7 @@ def config():
     config = BaseConfig(
         seed=42,
         size=10,  # number of rows of the CSV
-        max_attch_size=1,
+        max_attach_size=1,
         max_work_orders=1,
         db_url="postgresql://postgres:admin@localhost:54320/testdb",
     )

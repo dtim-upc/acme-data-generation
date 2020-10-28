@@ -1332,21 +1332,14 @@ class AirportProvider(BaseProvider):
                 amos.ForecastedOrder, 
                 amos.WorkOrder]] = None,
     ) -> amos.Workpackage:
-        """Produces a random workpackage object, possibly seeded
-
-        :param quality: the quality of the random object generated, defaults to "good"
-        :param maintenance_event: If provided, executiondate and executionplace are obtained from this object, defaults to None
+        """Produces a random workpackage object, possibly seeded by a workorder
         """
 
-        workpackageid = getattr(work_order, "workpackage", self.random_int(max=max_id))
+        work_order = work_order or self.work_order(quality=quality)
 
-        executiondate = getattr(
-            work_order, "executiondate", self.flight_timestamp(quality=quality)
-        )
-
-        executionplace = getattr(
-            work_order, "executionplace", self.airport_code(quality=quality)
-        )
+        workpackageid = work_order.workpackage
+        executiondate = work_order.executiondate
+        executionplace = work_order.executionplace
 
         return amos.Workpackage(
             workpackageid=workpackageid,
@@ -1356,23 +1349,23 @@ class AirportProvider(BaseProvider):
 
     def attachment(
         self, 
-        operational_interruption: T.Optional[amos.OperationalInterruption] = None,
+        event: T.Optional[T.Union[amos.MaintenanceEvent, amos.OperationalInterruption]] = None,
         quality = "good"
     ) -> amos.Attachment:
+        """Produces a random instance of amos.Attachment, possibly seeded by a maintenance event"""
 
-        oi = (operational_interruption or 
-                self.operational_interruption_event(quality=quality))
+        event = (event or 
+                self.maintenance_event(quality=quality))
 
         return amos.Attachment(
-            file=self.generator.uuid4(), event=oi.maintenanceid
-        )  # R4  # R5
+            file=self.generator.uuid4(), # R4
+            event=event.maintenanceid) # R5
 
     def work_order(
         self,
         max_id: int = 9999,
         quality: str = "good",
         maintenance_event: T.Optional[amos.MaintenanceEvent] = None,
-        work_package: T.Optional[amos.Workpackage] = None,
         kind: T.Optional[str] = None
         ) -> T.Union[amos.WorkOrder, amos.ForecastedOrder, amos.TechnicalLogbookOrder]:
 
@@ -1383,13 +1376,10 @@ class AirportProvider(BaseProvider):
 
         # early arg validation
         if kind:
-            (assert (kind in {"Forecast", "TechnicalLogBook"}),
-                'kind must be one of {"Forecast", "TechnicalLogBook"}')
+            assert (kind in {"Forecast", "TechnicalLogBook"}), 'kind must be one of {"Forecast", "TechnicalLogBook"}'
         
         # a work order is referenced from at least one maintenance event
         maintenance_event = maintenance_event or self.maintenance_event(quality=quality)
-        # a work order produces at least one work package
-        work_package = work_package or self.work_package(quality=quality)
         
         # R25-A
         aircraft_registration = maintenance_event.aircraftregistration
@@ -1405,7 +1395,7 @@ class AirportProvider(BaseProvider):
         
         # other random attributes
         workorderid = self.random_int(max=max_id)
-        workpackageid = work_package.workpackageid
+        workpackageid = self.random_int(max=max_id)
 
         if kind == "Forecast":
 
@@ -1522,7 +1512,7 @@ class AirportProvider(BaseProvider):
 
         # if no slot is provided, then we generate one at random
         if slot is None:
-            slot = self.random_element[self.flight_slot, self.maintenance_slot]()
+            slot = self.flight_slot(quality=quality) if random.random() < 0.5 else self.maintenance_slot(quality=quality)
 
         oi_starttime = slot.scheduleddeparture
         slot_kind = slot.kind
@@ -1559,8 +1549,8 @@ class AirportProvider(BaseProvider):
             # Then it is a MaintenanceSlot instance
             # and it produces a maintenance event
             # whose following attributes are not considered
-            flight_id = self.flight_id(quality=quality)
-            departure = 
+            flight_id = None
+            departure = None
             delay_code = None
 
             # R11-A, we set an airport at random
@@ -1613,7 +1603,7 @@ class AirportProvider(BaseProvider):
                     quality=quality))
 
         return amos.MaintenanceEvent(
-            maintenanceid=oi.maintenance_id,
+            maintenanceid=oi.maintenanceid,
             aircraftregistration=oi.aircraftregistration,
             airport=oi.airport,
             subsystem=oi.subsystem,
@@ -1733,8 +1723,8 @@ class AirportProvider(BaseProvider):
 
         return aims.MaintenanceSlot(
             aircraftregistration=fs.aircraftregistration,
-            scheduleddeparture=fs.scheduled_departure,
-            scheduledarrival=fs.scheduled_arrival,
+            scheduleddeparture=fs.scheduleddeparture,
+            scheduledarrival=fs.scheduledarrival,
             kind="Maintenance",
             programmed=self.generator.pybool(),
         )

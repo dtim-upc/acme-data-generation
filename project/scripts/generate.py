@@ -119,9 +119,7 @@ class AircraftGenerator:
 
         for maintenance_slot in tqdm(self.maintenance_slots):
             # maintenance slots produce only maintenance events
-            # TODO: insert operational interruption with some attributes being non-meaningful?
-            # TODO: like a a maintenance_slot does not have a flight ID per table definition, should
-            # TODO: we create a random flightid? What's the flightID if not then?
+            # flight slots produce operational interruptions
             
             maintenance_event = fake_airport.maintenance_event(
                 max_id=self.config.size,
@@ -165,6 +163,7 @@ class AircraftGenerator:
         for maintenance_event in tqdm(self.maintenance_events):
             
             order_kind = ("Forecast" if random.random() < proba_fo else "TechnicalLogBook")
+
             order = fake_airport.work_order(
                 max_id=len(self.maintenance_events),
                 quality=fake_airport.quality(self.config._prob_weights),
@@ -182,12 +181,18 @@ class AircraftGenerator:
         logging.info("Generating work packages")
         self.work_packages = []
 
-        for _ in tqdm(range(self.config.work_packages_size)):
-            work_package = fake_airport.work_package(
-                quality=fake_airport.quality(self.config._prob_weights),
-                max_id=self.config.size)
-            
-            self.work_packages.append(work_package)
+        for work_order in tqdm(chain(self.forecasted_orders, self.tlb_orders)):
+            # R30: each work order produces a number of workpackages less or equal than 
+            # config.max_work_packages
+            work_packages = []
+            for _ in range(random.randint(a=1, b=self.config.max_work_packages)):
+                work_package = fake_airport.work_package(
+                    quality=fake_airport.quality(self.config._prob_weights),
+                    max_id=self.config.size,
+                    work_order = work_order)
+                work_packages.append(work_package)
+                
+            self.work_packages.extend(work_packages)
 
         # ---------------------------- create attachments -------------------- #
 
@@ -195,11 +200,12 @@ class AircraftGenerator:
 
         logging.info("Generating attachments")
 
-        for oi in tqdm(self.operational_interruptions):
+        for event in tqdm(chain(self.operational_interruptions, self.maintenance_events)):
             event_attachments = []
-            logging.debug(f"Generating attachments for oi '{oi.maintenanceid}'")
-            for j in range(self.config.max_attch_size):
-                fake_attachment = fake_airport.attachment(operational_interruption=oi)
+            # R5
+            logging.debug(f"Generating attachments for event '{event.maintenanceid}'")
+            for j in range(random.randint(a=1, b=self.config.max_attach_size)):
+                fake_attachment = fake_airport.attachment(event=event)
                 event_attachments.append(fake_attachment)
 
             # we don't want nested lists

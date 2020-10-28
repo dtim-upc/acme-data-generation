@@ -31,9 +31,10 @@ class BaseConfig:
     work_packages_size: T.Optional[int] = None
     # ois_events_size is controlled by flight_slots_size
     # maintenance_events_size is controlled by maintenance_slots_size
-    max_attch_size: int = 1
+    max_attach_size: int = 1
+    max_work_packages: int = 1
     max_work_orders: int = 1
-    proba_forecast: float = 0.5
+    proba_forecast_order: float = 0.5
 
     # ---------------------------------------------------------------------------- #
     #                            other sensible defaults                           #
