@@ -119,7 +119,7 @@ class AircraftGenerator:
 
         logging.info("Generating operational interruptions")
 
-        for flight_slot in tqdm(self.flight_slots):
+        for flight_slot in self.flight_slots:
             # R13: If flight slot has some delay, that introduces 
             # an operational interruption of some kind
             if flight_slot.delaycode is not None:
@@ -129,6 +129,9 @@ class AircraftGenerator:
                     quality=fake_airport.quality(self.config._prob_weights),
                 )
                 self.operational_interruptions.append(operational_interruption)
+        
+        for _ in tqdm(self.operational_interruptions):
+            pass # hacky way to display a bar
         
         logging.info("Generating maintenance events")
 
@@ -196,7 +199,9 @@ class AircraftGenerator:
         logging.info("Generating work packages")
         self.work_packages = []
 
-        for work_order in tqdm(chain(self.forecasted_orders, self.tlb_orders)):
+        tqdm_total_wp = len(self.forecasted_orders) + len(self.tlb_orders)
+
+        for work_order in tqdm(chain(self.forecasted_orders, self.tlb_orders), total=tqdm_total_wp):
             # R30: each work order produces a number of workpackages less or equal than 
             # config.max_work_packages
             work_packages = []
@@ -212,10 +217,11 @@ class AircraftGenerator:
         # ---------------------------- create attachments -------------------- #
 
         self.attachments = []
+        tqdm_total_at = len(self.operational_interruptions) + len(self.maintenance_events)
 
         logging.info("Generating attachments")
 
-        for event in tqdm(chain(self.operational_interruptions, self.maintenance_events)):
+        for event in tqdm(chain(self.operational_interruptions, self.maintenance_events), total=tqdm_total_at):
             event_attachments = []
             # R5
             logging.debug(f"Generating attachments for event '{event.maintenanceid}'")
