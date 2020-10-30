@@ -217,6 +217,8 @@ class AircraftGenerator:
         # ---------------------------- create attachments -------------------- #
 
         self.attachments = []
+        # since ois inherits from maintenance events,
+        # ois are also maintenance events
         tqdm_total_at = len(self.operational_interruptions) + len(self.maintenance_events)
 
         logging.info("Generating attachments")

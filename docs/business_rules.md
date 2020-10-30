@@ -19,7 +19,9 @@ that it has been tested
 
 ### References
 
-- [ ] **R5**: event of an Attachment is a reference to maintenanceID of MaintenanceEvents. (Attachments->MaintenanceEvents)
+- [ ] **R5**: event of an `Attachment` is a reference to `maintenanceID` of `MaintenanceEvents`. (`Attachments`->`MaintenanceEvents`)
+  - [ ] **R5-A**: an maintenance event produces a number of attachments between 1 and `max_attach_size`
+- [ ] **R30**: A work order produces a number of work packages between 1 and `max_work_packages`. These are duplicated entries
 
 ### Datatypes/Domains
 
@@ -81,10 +83,10 @@ that it has been tested
   - [ ] **R25-A** the same aircraft registration
   - [ ] **R25-B** the fact that the execution date of the work order is inside the time interval of the maintenance event (startdate, startdate + duration).[See issue #6 for more details](https://github.com/diegoquintanav/acme-data-generation/issues/6)
   - [ ] **R25-C** The execution place of the work order is the airport of the maintenance event TODO: confirm this
-- [ ] **R26**: In ForecastedOrders, the `deadline` is such that `executiondate` < `deadline` < `maintenanceevent.starttime + maintenanceevent.duration`
-- [ ] **R27**: In ForecastedOrders, `planned` is equal to `maintenanceevent.starttime + maintenanceevent.duration`
+- [ ] **R26**: In ForecastedOrders, the `deadline` is `maintenanceevent.starttime + maintenanceevent.duration`, such that `planned` < `executiondate` < `deadline`
+- [ ] **R27**: In ForecastedOrders, `planned` is equal to `maintenanceevent.starttime`
 - [ ] **R28**: In TLBOrders, `reportingdate` is equal to `maintenanceevent.starttime`. That is, `reportingdate < starttime`
-- [ ] **R29**: In TLBOrders, `due` is the `executiondate` + a MEL based duration (i.e. the max delay allowed)
+- [ ] **R29**: In TLBOrders, `due` is the within `executiondate` + a MEL based duration (i.e. the max delay allowed)
   
 ## Configuration Requirements
 
