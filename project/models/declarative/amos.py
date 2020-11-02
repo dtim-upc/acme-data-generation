@@ -5,6 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import INTERVAL, UUID
 from sqlalchemy.sql.expression import case
 from project.models.declarative.mixins import UtilsMixin
+from sqlalchemy.ext.declarative import ConcreteBase
 
 
 __doc__ = """Classes used to populate the AMOS schema. 
@@ -122,7 +123,7 @@ class Workpackage(Base, UtilsMixin):
     executionplace = sa.Column("executionplace", sa.CHAR(3))
 
 
-class MaintenanceEvent(Base, UtilsMixin):
+class MaintenanceEvent(ConcreteBase, Base, UtilsMixin):
     __tablename__ = "maintenanceevents"
     __table_args__ = {"schema": "AMOS"}
 
@@ -177,17 +178,38 @@ class OperationalInterruption(MaintenanceEvent):
 
     # This id is not meaningful at a domain level
     rowid = sa.Column(
-        "id", sa.Integer, sa.ForeignKey("AMOS.maintenanceevents.id"), primary_key=True
+        "id", sa.Integer, primary_key=True
     )
 
+    # duplicated columns from parent
+    maintenanceid = sa.Column("maintenanceid", sa.CHAR(30))
+    aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
+    airport = sa.Column("airport", sa.CHAR(3))
+    subsystem = sa.Column("subsystem", sa.CHAR(4))
+    starttime = sa.Column("starttime", sa.DateTime)
+    duration = sa.Column("duration", INTERVAL)
+    kind = sa.Column(
+        "kind",
+        sa.Enum(
+            "Delay",
+            "Safety",
+            "AircraftOnGround",
+            "Maintenance",
+            "Revision",
+            name="maintenanceeventkind",
+        ),
+        nullable=False,
+    )
+
+    # new columns
     flightid = sa.Column("flightid", sa.CHAR(26), nullable=False)
     departure = sa.Column("departure", sa.Date, nullable=False)
     delaycode = sa.Column("delaycode", sa.CHAR(2))
 
-    __mapper_args__ = {"polymorphic_identity": "OperationalInterruption"}
+    __mapper_args__ = {"polymorphic_identity": "OperationalInterruption", "concrete": True}
 
 
-class WorkOrder(Base, UtilsMixin):
+class WorkOrder(ConcreteBase, Base, UtilsMixin):
     __tablename__ = "workorders"
     __table_args__ = {"schema": "AMOS"}
 
@@ -226,9 +248,22 @@ class TechnicalLogbookOrder(WorkOrder):
 
     # This id is not meaningful at a domain level
     rowid = sa.Column(
-        "id", sa.Integer, sa.ForeignKey("AMOS.workorders.id"), primary_key=True
+        "id", sa.Integer, primary_key=True
     )
 
+    # duplicated rows from parent
+    workorderid = sa.Column("workorderid", sa.Integer)
+    aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
+    executiondate = sa.Column("executiondate", sa.Date)
+    executionplace = sa.Column("executionplace", sa.CHAR(3))
+    workpackage = sa.Column("workpackage", sa.Integer)
+    kind = sa.Column(
+        "kind",
+        sa.Enum("Forecast", "TechnicalLogBook", name="workorderkind"),
+        nullable=False,
+    )
+
+    # new columns
     reporteurclass = sa.Column(
         "reporteurclass",
         sa.Enum("PIREP", "MAREP", name="reportkind"),
@@ -241,7 +276,7 @@ class TechnicalLogbookOrder(WorkOrder):
     deferred = sa.Column("deferred", sa.Boolean)
     mel = sa.Column("mel", sa.Enum("A", "B", "C", "D", name="melcathegory"))
 
-    __mapper_args__ = {"polymorphic_identity": "TechnicalLogBook"}
+    __mapper_args__ = {"polymorphic_identity": "TechnicalLogBook", "concrete": True}
 
 
 class ForecastedOrder(WorkOrder):
@@ -250,9 +285,23 @@ class ForecastedOrder(WorkOrder):
 
     # This id is not meaningful at a domain level
     rowid = sa.Column(
-        "id", sa.Integer, sa.ForeignKey("AMOS.workorders.id"), primary_key=True
+        "id", sa.Integer, primary_key=True
     )
 
+    # duplicated rows from parent
+    workorderid = sa.Column("workorderid", sa.Integer)
+    aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
+    executiondate = sa.Column("executiondate", sa.Date)
+    executionplace = sa.Column("executionplace", sa.CHAR(3))
+    workpackage = sa.Column("workpackage", sa.Integer)
+    kind = sa.Column(
+        "kind",
+        sa.Enum("Forecast", "TechnicalLogBook", name="workorderkind"),
+        nullable=False,
+    )
+
+
+    # new columns
     deadline = sa.Column("deadline", sa.Date, nullable=False)
     planned = sa.Column("planned", sa.Date, nullable=False)
     frequency = sa.Column("frequency", sa.SmallInteger, nullable=False)
@@ -265,4 +314,4 @@ class ForecastedOrder(WorkOrder):
         "forecastedmanhours", sa.SmallInteger, nullable=False
     )
 
-    __mapper_args__ = {"polymorphic_identity": "Forecast"}
+    __mapper_args__ = {"polymorphic_identity": "Forecast", "concrete": True}

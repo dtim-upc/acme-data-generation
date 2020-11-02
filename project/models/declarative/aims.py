@@ -7,6 +7,7 @@ from sqlalchemy.sql.schema import ForeignKey
 from sqlalchemy.sql.expression import case
 from project.models.declarative.mixins import UtilsMixin
 from datetime import datetime, timedelta
+from sqlalchemy.ext.declarative import ConcreteBase
 
 Base = declarative_base()
 
@@ -61,7 +62,7 @@ CREATE TABLE "AIMS".Maintenance (
 ) INHERITS ("AIMS".Slots);"""
 
 
-class Slot(Base, UtilsMixin):
+class Slot(ConcreteBase, Base, UtilsMixin):
     __tablename__ = "slots"
     __table_args__ = {"schema": "AIMS"}
 
@@ -76,7 +77,7 @@ class Slot(Base, UtilsMixin):
         sa.Enum("Flight", "Maintenance", "Buffer", "Spare", name="slotkind"),
         nullable=False,
     )
-    
+
     __mapper_args__ = {
         "polymorphic_on": case(
             [
@@ -103,7 +104,17 @@ class FlightSlot(Slot):
     __table_args__ = {"schema": "AIMS"}
 
     # just needed by the ORM
-    rowid = sa.Column("id", sa.Integer, sa.ForeignKey("AIMS.slots.id"), primary_key=True)
+    rowid = sa.Column("id", sa.Integer, primary_key=True)
+
+    # duplicated rows from parent class
+    aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
+    scheduleddeparture = sa.Column("scheduleddeparture", sa.DateTime, nullable=False)
+    scheduledarrival = sa.Column("scheduledarrival", sa.DateTime, nullable=False)
+    kind = sa.Column(
+        "kind",
+        sa.Enum("Flight", "Maintenance", "Buffer", "Spare", name="slotkind"),
+        nullable=False,
+    )
 
     flightid: str = sa.Column("flightid", sa.CHAR(26), nullable=False)
     departureairport: str = sa.Column("departureairport", sa.CHAR(3), nullable=False)
@@ -116,7 +127,7 @@ class FlightSlot(Slot):
     cabincrew: int = sa.Column("cabincrew", sa.SmallInteger)
     flightcrew: int = sa.Column("flightcrew", sa.SmallInteger)
 
-    __mapper_args__ = {"polymorphic_identity": "FlightSlot"}
+    __mapper_args__ = {"polymorphic_identity": "FlightSlot", "concrete": True}
 
 
 class MaintenanceSlot(Slot):
@@ -124,8 +135,18 @@ class MaintenanceSlot(Slot):
     __table_args__ = {"schema": "AIMS"}
 
     # just needed by the ORM
-    rowid = sa.Column("id", sa.Integer, sa.ForeignKey("AIMS.slots.id"), primary_key=True)
+    rowid = sa.Column("id", sa.Integer, primary_key=True)
+
+    # duplicated rows from parent class
+    aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
+    scheduleddeparture = sa.Column("scheduleddeparture", sa.DateTime, nullable=False)
+    scheduledarrival = sa.Column("scheduledarrival", sa.DateTime, nullable=False)
+    kind = sa.Column(
+        "kind",
+        sa.Enum("Flight", "Maintenance", "Buffer", "Spare", name="slotkind"),
+        nullable=False,
+    )
 
     programmed: bool = sa.Column("programmed", sa.Boolean, nullable=False)
 
-    __mapper_args__ = {"polymorphic_identity": "MaintenanceSlot"}
+    __mapper_args__ = {"polymorphic_identity": "MaintenanceSlot", "concrete": True}
