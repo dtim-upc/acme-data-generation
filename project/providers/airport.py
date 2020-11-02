@@ -1458,6 +1458,11 @@ class AirportProvider(BaseProvider):
 
             return tlb 
         else:
+            executiondate = self.generator.date_time_ad(
+                start_datetime=maintenance_event.starttime,
+                end_datetime=maintenance_event.starttime + maintenance_event.duration,
+            )
+            
             wo = amos.WorkOrder(
                 workorderid=workorderid,
                 aircraftregistration=aircraft_registration,
