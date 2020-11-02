@@ -3,6 +3,7 @@
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import INTERVAL, UUID
+from sqlalchemy.sql.expression import case
 from project.models.declarative.mixins import UtilsMixin, RowIdMixin
 
 
@@ -97,24 +98,36 @@ CREATE TABLE "AMOS".Attachments (
 """
 
 
-class AMOSMixin(UtilsMixin):
+class Attachment(Base):
+
+    __tablename__ = "attachments"
     __table_args__ = {"schema": "AMOS"}
 
+    # This id is not meaningful at a domain level
+    rowid = sa.Column("id", sa.Integer, primary_key=True)
 
-class Attachment(Base, RowIdMixin, AMOSMixin):
-    __tablename__ = "attachments"
     file = sa.Column("file", UUID)
     event = sa.Column("event", sa.CHAR(30), nullable=False)
 
 
-class Workpackage(Base, RowIdMixin, AMOSMixin):
+class Workpackage(Base):
     __tablename__ = "workpackages"
+    __table_args__ = {"schema": "AMOS"}
+
+    # This id is not meaningful at a domain level
+    rowid = sa.Column("id", sa.Integer, primary_key=True)
+
     workpackageid = sa.Column("workpackageid", sa.Integer)
     executiondate = sa.Column("executiondate", sa.Date)
     executionplace = sa.Column("executionplace", sa.CHAR(3))
 
 
-class MaintenanceEventMixin(object):
+class MaintenanceEvent(Base, UtilsMixin):
+    __tablename__ = "maintenanceevents"
+    __table_args__ = {"schema": "AMOS"}
+
+    # This id is not meaningful at a domain level
+    rowid = sa.Column("id", sa.Integer, primary_key=True)
 
     maintenanceid = sa.Column("maintenanceid", sa.CHAR(30))
     aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
@@ -135,6 +148,16 @@ class MaintenanceEventMixin(object):
         nullable=False,
     )
 
+    __mapper_args__ = {
+        "polymorphic_on": case(
+            [
+                (kind.in_(("Delay", "Safety")), "OperationalInterruption"),
+            ],
+            else_="MaintenanceEvent",
+        ),
+        "polymorphic_identity": "MaintenanceEvent",
+    }
+
     @classmethod
     def from_child(cls, obj):
         return cls(
@@ -148,22 +171,28 @@ class MaintenanceEventMixin(object):
         )
 
 
-class MaintenanceEvent(Base, RowIdMixin, MaintenanceEventMixin, AMOSMixin):
-    __tablename__ = "maintenanceevents"
-
-
-class OperationalInterruption(Base, RowIdMixin, MaintenanceEventMixin, AMOSMixin):
+class OperationalInterruption(MaintenanceEvent):
     __tablename__ = "operationinterruption"
+    __table_args__ = {"schema": "AMOS"}
 
-    # TODO: confirm that
-    # in the given sql for this table, `flightid` is of length 22. If the business rule R13 is hold, then
-    # an operational interruption should have the same flightid, which is of length 26.
+    # This id is not meaningful at a domain level
+    rowid = sa.Column(
+        "id", sa.Integer, sa.ForeignKey("AMOS.maintenanceevents.id"), primary_key=True
+    )
+
     flightid = sa.Column("flightid", sa.CHAR(26), nullable=False)
     departure = sa.Column("departure", sa.Date, nullable=False)
     delaycode = sa.Column("delaycode", sa.CHAR(2))
 
+    __mapper_args__ = {"polymorphic_identity": "OperationalInterruption"}
 
-class WorkOrderMixin(object):
+
+class WorkOrder(Base, UtilsMixin):
+    __tablename__ = "workorders"
+    __table_args__ = {"schema": "AMOS"}
+
+    # This id is not meaningful at a domain level
+    rowid = sa.Column("id", sa.Integer, primary_key=True)
 
     workorderid = sa.Column("workorderid", sa.Integer)
     aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
@@ -175,6 +204,8 @@ class WorkOrderMixin(object):
         sa.Enum("Forecast", "TechnicalLogBook", name="workorderkind"),
         nullable=False,
     )
+
+    __mapper_args__ = {"polymorphic_on": kind, "polymorphic_identity": "WorkOrder"}
 
     @classmethod
     def from_child(cls, obj):
@@ -188,27 +219,39 @@ class WorkOrderMixin(object):
         )
 
 
-class WorkOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
-    __tablename__ = "workorders"
+class TechnicalLogbookOrder(WorkOrder):
 
-
-class TechnicalLogbookOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
     __tablename__ = "technicallogbookorders"
+    __table_args__ = {"schema": "AMOS"}
+
+    # This id is not meaningful at a domain level
+    rowid = sa.Column(
+        "id", sa.Integer, sa.ForeignKey("AMOS.workorders.id"), primary_key=True
+    )
 
     reporteurclass = sa.Column(
         "reporteurclass",
         sa.Enum("PIREP", "MAREP", name="reportkind"),
         nullable=False,
     )
+
     reporteurid = sa.Column("reporteurid", sa.SmallInteger, nullable=False)
     reportingdate = sa.Column("reportingdate", sa.Date, nullable=False)
     due = sa.Column("due", sa.Date)
     deferred = sa.Column("deferred", sa.Boolean)
     mel = sa.Column("mel", sa.Enum("A", "B", "C", "D", name="melcathegory"))
 
+    __mapper_args__ = {"polymorphic_identity": "TechnicalLogBook"}
 
-class ForecastedOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
+
+class ForecastedOrder(WorkOrder):
     __tablename__ = "forecastedorders"
+    __table_args__ = {"schema": "AMOS"}
+
+    # This id is not meaningful at a domain level
+    rowid = sa.Column(
+        "id", sa.Integer, sa.ForeignKey("AMOS.workorders.id"), primary_key=True
+    )
 
     deadline = sa.Column("deadline", sa.Date, nullable=False)
     planned = sa.Column("planned", sa.Date, nullable=False)
@@ -221,3 +264,5 @@ class ForecastedOrder(Base, RowIdMixin, WorkOrderMixin, AMOSMixin):
     forecastedmanhours = sa.Column(
         "forecastedmanhours", sa.SmallInteger, nullable=False
     )
+
+    __mapper_args__ = {"polymorphic_identity": "Forecast"}

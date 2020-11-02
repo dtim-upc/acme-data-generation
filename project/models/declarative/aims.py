@@ -3,6 +3,8 @@ import typing as T
 
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql.schema import ForeignKey
+from sqlalchemy.sql.expression import case
 from project.models.declarative.mixins import UtilsMixin, RowIdMixin
 from datetime import datetime, timedelta
 
@@ -59,25 +61,32 @@ CREATE TABLE "AIMS".Maintenance (
 ) INHERITS ("AIMS".Slots);"""
 
 
-class AIMSMixin(UtilsMixin):
+class Slot(Base, UtilsMixin):
+    __tablename__ = "slots"
     __table_args__ = {"schema": "AIMS"}
 
+    # just needed by the ORM
+    rowid = sa.Column("id", sa.Integer, primary_key=True)
 
-class SlotsMixin(object):
-    aircraftregistration = sa.Column(
-        "aircraftregistration", sa.CHAR(6), nullable=False
-    )
-    scheduleddeparture = sa.Column(
-        "scheduleddeparture", sa.DateTime, nullable=False
-    )
-    scheduledarrival = sa.Column(
-        "scheduledarrival", sa.DateTime, nullable=False
-    )
+    aircraftregistration = sa.Column("aircraftregistration", sa.CHAR(6), nullable=False)
+    scheduleddeparture = sa.Column("scheduleddeparture", sa.DateTime, nullable=False)
+    scheduledarrival = sa.Column("scheduledarrival", sa.DateTime, nullable=False)
     kind = sa.Column(
         "kind",
         sa.Enum("Flight", "Maintenance", "Buffer", "Spare", name="slotkind"),
         nullable=False,
     )
+    
+    __mapper_args__ = {
+        "polymorphic_on": case(
+            [
+                (kind == "Flight", "FlightSlot"),
+                (kind == "Maintenance", "MaintenanceSlot"),
+            ],
+            else_="Slot",
+        ),
+        "polymorphic_identity": "Slot",
+    }
 
     @classmethod
     def from_child(cls, obj):
@@ -89,16 +98,16 @@ class SlotsMixin(object):
         )
 
 
-class FlightSlot(Base, RowIdMixin, SlotsMixin, AIMSMixin):
+class FlightSlot(Slot):
     __tablename__ = "flights"
+    __table_args__ = {"schema": "AIMS"}
+
+    # just needed by the ORM
+    rowid = sa.Column("id", sa.Integer, sa.ForeignKey("AIMS.slots.id"), primary_key=True)
 
     flightid: str = sa.Column("flightid", sa.CHAR(26), nullable=False)
-    departureairport: str = sa.Column(
-        "departureairport", sa.CHAR(3), nullable=False
-    )
-    arrivalairport: str = sa.Column(
-        "arrivalairport", sa.CHAR(3), nullable=False
-    )
+    departureairport: str = sa.Column("departureairport", sa.CHAR(3), nullable=False)
+    arrivalairport: str = sa.Column("arrivalairport", sa.CHAR(3), nullable=False)
     actualdeparture: datetime = sa.Column("actualdeparture", sa.DateTime)
     actualarrival: datetime = sa.Column("actualarrival", sa.DateTime)
     cancelled: bool = sa.Column("cancelled", sa.Boolean)
@@ -107,11 +116,16 @@ class FlightSlot(Base, RowIdMixin, SlotsMixin, AIMSMixin):
     cabincrew: int = sa.Column("cabincrew", sa.SmallInteger)
     flightcrew: int = sa.Column("flightcrew", sa.SmallInteger)
 
+    __mapper_args__ = {"polymorphic_identity": "FlightSlot"}
 
-class MaintenanceSlot(Base, RowIdMixin, SlotsMixin, AIMSMixin):
+
+class MaintenanceSlot(Slot):
     __tablename__ = "maintenance"
+    __table_args__ = {"schema": "AIMS"}
+
+    # just needed by the ORM
+    rowid = sa.Column("id", sa.Integer, sa.ForeignKey("AIMS.slots.id"), primary_key=True)
+
     programmed: bool = sa.Column("programmed", sa.Boolean, nullable=False)
 
-
-class Slot(Base, RowIdMixin, SlotsMixin, AIMSMixin):
-    __tablename__ = "slots"
+    __mapper_args__ = {"polymorphic_identity": "MaintenanceSlot"}
