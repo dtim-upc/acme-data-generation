@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import INTERVAL, UUID
 from sqlalchemy.sql.expression import case
-from project.models.declarative.mixins import UtilsMixin, RowIdMixin
+from project.models.declarative.mixins import UtilsMixin
 
 
 __doc__ = """Classes used to populate the AMOS schema. 
@@ -98,7 +98,7 @@ CREATE TABLE "AMOS".Attachments (
 """
 
 
-class Attachment(Base):
+class Attachment(Base, UtilsMixin):
 
     __tablename__ = "attachments"
     __table_args__ = {"schema": "AMOS"}
@@ -110,7 +110,7 @@ class Attachment(Base):
     event = sa.Column("event", sa.CHAR(30), nullable=False)
 
 
-class Workpackage(Base):
+class Workpackage(Base, UtilsMixin):
     __tablename__ = "workpackages"
     __table_args__ = {"schema": "AMOS"}
 

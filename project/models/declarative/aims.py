@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.schema import ForeignKey
 from sqlalchemy.sql.expression import case
-from project.models.declarative.mixins import UtilsMixin, RowIdMixin
+from project.models.declarative.mixins import UtilsMixin
 from datetime import datetime, timedelta
 
 Base = declarative_base()
