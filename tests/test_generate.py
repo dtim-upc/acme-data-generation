@@ -3,6 +3,8 @@ import typing as T
 from statistics import mean
 import re
 
+from itertools import chain, permutations
+
 from project.scripts.generate import AircraftGenerator
 from project.base.config import BaseConfig
 
@@ -35,8 +37,7 @@ def test_slots_size(config, size):
     ag = AircraftGenerator(config=config)
     ag.populate()
 
-    assert len(ag.slots) == total_size
-    assert len(ag.maintenance_slots) + len(ag.flight_slots) == len(ag.slots)
+    assert len(ag.maintenance_slots) + len(ag.flight_slots) == total_size
 
     assert len(ag.maintenance_slots) == size
     assert len(ag.flight_slots) == size
@@ -58,16 +59,15 @@ def test_work_orders_size(config, size):
     # and tlb_orders and forecasted orders are split 50/50 of that
 
     config.size = size
-    config.flight_slots_size = size
-    config.maintenance_slots_size = size
+    config.forecasted_orders_size = size
+    config.tlb_orders_size = size
 
     ag = AircraftGenerator(config=config)
     ag.populate()
 
     assert len(ag.tlb_orders) == size
     assert len(ag.forecasted_orders) == size
-    assert len(ag.work_orders) == size * 2
-    assert len(ag.tlb_orders) + len(ag.forecasted_orders) == len(ag.work_orders)
+    assert len(ag.tlb_orders) + len(ag.forecasted_orders) == size * 2
 
 
 @pytest.mark.parametrize("attch_size", [1, 2])
@@ -78,7 +78,7 @@ def test_attachments_size(config, oi_size, attch_size):
     # maintenance_events_size is controlled by maintenance_slots_size
 
     config.flight_slots_size = oi_size
-    config.max_attch_size = attch_size
+    config.max_attach_size = attch_size
 
     ag = AircraftGenerator(config=config)
     ag.populate()
@@ -94,7 +94,7 @@ def test_totals(custom_size):
         maintenance_slots_size=custom_size,
         tlb_orders_size=custom_size,
         forecasted_orders_size=custom_size,
-        max_attch_size=1,
+        max_attach_size=1,
         max_work_orders=1,
     )
 
@@ -106,26 +106,26 @@ def test_totals(custom_size):
     assert config.maintenance_slots_size == custom_size
     assert config.tlb_orders_size == custom_size
     assert config.forecasted_orders_size == custom_size
-    assert config.max_attch_size == 1
+    assert config.max_attach_size == 1
     assert config.max_work_orders == 1
 
-    total_instances = sum(
-        [
-            len(ag.flight_slots),
-            len(ag.maintenance_slots),
-            len(ag.slots),
-            len(ag.operational_interruptions),
-            len(ag.maintenance_events),
-            len(ag.manufacturers),
-            len(ag.work_orders),
-            len(ag.work_packages),
-            len(ag.tlb_orders),
-            len(ag.forecasted_orders),
-            len(ag.attachments),
+    entities =  [
+        ag.flight_slots,
+        ag.maintenance_slots,
+        ag.maintenance_events,
+        ag.operational_interruptions,
+        ag.manufacturers,
+        ag.work_packages,
+        ag.tlb_orders,
+        ag.forecasted_orders,
+        ag.attachments,
+        ag.maintenance_personnel
         ]
-    )
 
-    assert ag.total_entities == 11
+    total_instances = sum([len(entity) for entity in entities])
+
+
+    assert ag.total_entities == len(entities)
     assert ag.total_instances == total_instances
 
 
@@ -300,7 +300,6 @@ def test_distributions_mixed_qualities():
     assert (mean(count_good) + mean(count_noisy)) == pytest.approx(90, abs=tol)
 
 
-
 def test_work_orders_have_valid_aircraftregistration(config):
     """Tests that the relation between workorders and maintenanceevents is meaningful
 
@@ -338,8 +337,8 @@ def test_work_orders_have_valid_aircraftregistration(config):
     # uno de los business rules dice que cada workorders por un aircraft debería
     # estar dentro de al menos un maintenance events 
     # (w.executiondate between starttime and starttime+duration).
-    airc_regs_wo = [wo.aircraftregistration for wo in ag.work_orders]
-    airc_regs_me = [me.aircraftregistration for me in ag.maintenance_events]
+    airc_regs_wo = [wo.aircraftregistration for wo in chain(ag.forecasted_orders, ag.tlb_orders)]
+    airc_regs_me = [me.aircraftregistration for me in ag.operational_interruptions]
 
     # Maintenance event can include several work orders and each work order is 
     # inside one maintenance event. However, this reference is not explicit. 
@@ -372,14 +371,14 @@ def test_work_orders_have_valid_executiondate(config):
             "AMOS".maintenanceevents m2
         where
             w.aircraftregistration = m2.aircraftregistration
-            and w.executiondate between starttime and starttime + duration) 
+            and w.executiondate between starttime and starttime + duration)
     ```
+
     Check issue #6
 
     returns nothing, if prob_good = 1
     returns a proportion of size of prob_bad and prob_noisy, if they are not zero
     """
-
 
     config.size = 100
     ag = AircraftGenerator(config=config)
@@ -387,7 +386,7 @@ def test_work_orders_have_valid_executiondate(config):
 
     assert config._prob_weights == [1, 0, 0]
 
-    wo_execution_date = [wo.executiondate for wo in ag.work_orders]
+    wo_execution_date = [wo.executiondate for wo in chain(ag.tlb_orders, ag.forecasted_orders)]
     me_airc_starttimes = [me.starttime for me in ag.maintenance_events]
     me_airc_endtimes = [me.starttime + me.duration for me in ag.maintenance_events]
 
@@ -400,3 +399,45 @@ def test_work_orders_have_valid_executiondate(config):
     for ed, start, end in zip(wo_execution_date, me_airc_starttimes, me_airc_endtimes):
         assert ed >= start
         assert ed <= end
+
+
+def test_slots_with_same_aircraft_dont_overlap():
+    """tests R20: Two Slots of the same aircraft cannot overlap in time.
+    
+    SELECT count(*)
+    FROM flights f1
+    WHERE NOT EXISTS
+    (SELECT * FROM flights f2 WHERE f1.flightid <> f2.flightid and f1.aircraftregistration = f2.aircraftregistration
+    and (f1.actualdeparture, f1.actualarrival) overlaps (f2.actualdeparture,f2.actualarrival));
+    
+    currently ~9900 out of 10000 rows don't pass this test
+    """
+    
+
+    config = BaseConfig(size = 1000)
+    config._prob_weights = [1, 0, 0]
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+
+    # fetch all airc. regs.
+    aircraft_registrations = [f.aircraftregistration for f in ag.flight_slots]
+
+    # paranoid check
+    assert ag.config.size == config.size
+    assert len(ag.flight_slots) == config.size
+
+    for ar in aircraft_registrations:
+        # fetch all flights with that ar code
+        same_aircraft_flights = [f for f in ag.flight_slots if (f.aircraftregistration == ar and f.cancelled is False)]
+        # check that the flights with this ar don't overlap
+        if len(same_aircraft_flights) >= 2:
+            for flight_1, flight_2 in permutations(same_aircraft_flights, 2):
+                ts1 = flight_1.actualdeparture
+                te1 = flight_1.actualarrival
+                ts2 = flight_2.actualdeparture
+                te2 = flight_2.actualarrival
+                    
+                min_end = min(te1, te2)
+                max_start = max(ts1, ts2)
+
+                assert not min_end > max_start
