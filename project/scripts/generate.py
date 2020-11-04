@@ -2,8 +2,8 @@ import csv
 import logging
 import random
 import typing as T
-from datetime import timedelta
-from itertools import chain
+from datetime import datetime, timedelta
+from itertools import chain, zip_longest
 from pathlib import Path
 
 from faker import Faker
@@ -14,6 +14,13 @@ from project.providers.airport import fake_airport
 from project.scripts.db_utils import get_session
 from sqlalchemy import create_engine
 from tqdm import tqdm
+
+
+
+def grouper(iterable, n, fillvalue=None):
+    # https://stackoverflow.com/a/434411/5819113
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
 
 
 class AircraftGenerator:
@@ -98,6 +105,65 @@ class AircraftGenerator:
                 quality=fake_airport.quality(self.config._prob_weights),
             )
             self.flight_slots.append(flight_slot)
+
+        # R20
+        # verify overlaps if any, and fix them with prob_good probability
+
+        # sort flights per scheduleddeparture, in-place
+        # flight slots that were cancelled are considered as of higher value
+        # in the sort. In other words, they will end up in the end of the list.
+        # this is arbitrary.
+        self.flight_slots.sort(
+            key=lambda flight: flight.actualdeparture or datetime.max)
+
+        # fetch the indexes of those flights that were not cancelled
+        # we need those to not overlap
+        non_cancelled_flights_indexes = [
+            idx for idx, f in enumerate(self.flight_slots)
+            if not f.cancelled]
+
+        for flight1_idx, flight2_idx in grouper(non_cancelled_flights_indexes, n=2, fillvalue=None):
+            # assuming list is sorted, we
+            # compare flights in chunks of two. An overlap looks like
+            #
+            # ---|--------|---------|--------|------> time
+            #   ts1      ts2       te1      te2
+            #
+            # where ts = time start, te = time end. We want to fix this,
+            # by swapping ts2 with te1
+            #
+            # ---|--------|---------|--------|------> time
+            #   ts1      te1       ts2 +    te2
+            #                  random interval      
+            
+            if flight2_idx is None:
+                # we may have an odd number of flights to fix. If that's the case
+                # the last index will be None, and we know this flight needs no
+                # correction
+                continue
+            
+            ts1 = self.flight_slots[flight1_idx].actualdeparture
+            te1 = self.flight_slots[flight1_idx].actualarrival
+            ts2 = self.flight_slots[flight2_idx].actualdeparture
+            te2 = self.flight_slots[flight2_idx].actualarrival
+
+            # get both ends of the eventual overlap
+            # will get te1 if flight is not overlapping
+            min_end = min(te1, te2)
+            # will get ts2 if flight is not overlapping
+            max_start = max(ts1, ts2)
+
+            # means we have an overlap guys, put your gear on
+            if min_end > max_start:
+                # swap start of f2 with end of f1
+                # by reassigning dates to flights
+
+                # make the start of flight 2 something between the ending
+                # of flight 1 and the ending of flight 2
+                self.flight_slots[flight2_idx].actualdeparture = te1
+
+                # make the start of ending of flight 1, the beginning of flight 2
+                self.flight_slots[flight1_idx].actualarrival = ts2
 
         # ----------------------------- maintenance slots -------------------- #
 
@@ -227,7 +293,7 @@ class AircraftGenerator:
             event_attachments = []
             # R5
             logging.debug(f"Generating attachments for event '{event.maintenanceid}'")
-            for j in range(random.randint(a=1, b=self.config.max_attach_size)):
+            for _ in range(random.randint(a=1, b=self.config.max_attach_size)):
                 fake_attachment = fake_airport.attachment(event=event)
                 event_attachments.append(fake_attachment)
 
