@@ -6,7 +6,7 @@ Below are listed the business rules that one would expect to be true in the data
 
 - The identifiers at the beginning of the rules are meant to be set in stone. This number has no particular meaning and it is only used to reference to rules in the code.
 - A checked checkbox means that the rule has been implemented, although this does not guarantee
-that it has been tested
+  that it has been tested
 
 ## AMOS database
 
@@ -37,8 +37,8 @@ that it has been tested
 ### Other business rules
 
 - [ ] **R12**: In OperationInterruption, `departure` must coincide with the date of the flightID (see below how it is composed).
-  - [x] **R12-A**: This means that for a flight slot with `flightid` containing `<some date>`, this _date_ is the one used as `departure` in the operation interruption. 
-  - [X] **R12-B**: In a `flightid`, this date being used is the **scheduleddeparture**. TODO: Confirm this.
+  - [x] **R12-A**: This means that for a flight slot with `flightid` containing `<some date>`, this _date_ is the one used as `departure` in the operation interruption.
+  - [x] **R12-B**: In a `flightid`, this date being used is the **scheduleddeparture**. TODO: Confirm this.
   - [x] **R12-C**: We also use the same `flightid`.
 - [x] **R13**: The flight registered in OperationInterruption, must exist in the Flights of AIMS database, and be marked as “delayed” (i.e., `delayCode` is not null) with the same IATA delay code.
   - [x] If `flight_slot.delay_code` is not `None`, then we create an `operationinterruption`.
@@ -55,7 +55,7 @@ that it has been tested
   - [x] **R15-D**: Maintenance – hours to max 1 day
     - [x] limit any random duration to max 1 day
   - [x] **R15-E**: Revision – days to 1 month
-    - [x] limit any random duration to max 31 days
+1    - [x] limit any random duration to max 31 days
 
 ## AIMS database
 
@@ -71,7 +71,7 @@ that it has been tested
 ### Other business rules
 
 - [x] **R19**: In a Slot, scheduledArrival must be posterior to the scheduledDeparture.
-- [ ] **R20**: Two Slots of the same aircraft cannot overlap in time.
+- [ ] **R20**: Two Slots of the same aircraft cannot overlap in time. Here we assume it refers to flight slots.
   - [ ] How do we check this? with a posterior check and a test.
 - [ ] **R21**: In Flights, departure and arrival airports must be those in the flightID (unless this flight has been diverted)
   - [ ] TODO: what does it mean that it has been diverted? We assume that some flights can be diverted, and that the flightID has the original information i.e. with some airport A and the actual airport stored is different i.e. B.
@@ -87,10 +87,10 @@ that it has been tested
 - [ ] **R27**: In ForecastedOrders, `planned` is equal to `maintenanceevent.starttime`
 - [ ] **R28**: In TLBOrders, `reportingdate` is equal to `maintenanceevent.starttime`. That is, `reportingdate < starttime`
 - [ ] **R29**: In TLBOrders, `due` is the within `executiondate` + a MEL based duration (i.e. the max delay allowed)
-  
+
 ## Configuration Requirements
 
 These refer to any requirement related to control the data generation process.
 
 - [x] **C1**: Users can select how many rows they wish
-- [x] **C2**: Users can define a probability that a value has noise or is of bad quality 
+- [x] **C2**: Users can define a probability that a value has noise or is of bad quality
