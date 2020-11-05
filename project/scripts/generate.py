@@ -38,11 +38,12 @@ class AircraftGenerator:
             file = path.joinpath(f"{tablename}.csv")
 
             # creates a dictwriter
+            # in windows, dictwriter adds a newline at the end of each row
+            # https://stackoverflow.com/a/3191811/5819113
             writer = csv.DictWriter(
-                file.open("wt"),
+                file.open("wt", newline=''),
                 fieldnames=entities[0].as_dict().keys(),
-                delimiter=",",
-            )
+                delimiter=",")
 
             writer.writeheader()
 
