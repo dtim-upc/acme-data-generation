@@ -17,7 +17,7 @@ def test_that_nothing_breaks(config):
     ag.populate()
 
 
-@pytest.mark.parametrize("size", [10, 100, 1000])
+@pytest.mark.parametrize("size", [10, 100])
 def test_config_size(size, config):
 
     config.size = size
@@ -27,7 +27,7 @@ def test_config_size(size, config):
     assert ag.config.size == config.size
 
 
-@pytest.mark.parametrize("size", [10, 100, 1000])
+@pytest.mark.parametrize("size", [10, 100])
 def test_slots_size(config, size):
 
     config.flight_slots_size = size
@@ -43,20 +43,15 @@ def test_slots_size(config, size):
     assert len(ag.flight_slots) == size
 
 
-@pytest.mark.parametrize("size", [10, 100, 1000])
+@pytest.mark.parametrize("size", [10, 100])
 def test_work_orders_size(config, size):
+    """Tests that work orders' size matches
 
-    # work orders should be the size of work packages
-    # work packages are the size of maintenance_events
-    # and maintenance_events are the size of operational interruptions + common maintenance events
-    # operational interruptions are the size of flight slots
-    # common maintenance events are the size of maintenance slots
-    # config.tlb_orders_size = size
-    # config.forecasted_orders_size = size
-
-    # since flight slots = size, and maintenance slots = size
-    # work orders should be 2 * size,
-    # and tlb_orders and forecasted orders are split 50/50 of that
+    :param config: [description]
+    :type config: [type]
+    :param size: [description]
+    :type size: [type]
+    """
 
     config.size = size
     config.forecasted_orders_size = size
@@ -71,7 +66,7 @@ def test_work_orders_size(config, size):
 
 
 @pytest.mark.parametrize("attch_size", [1, 2])
-@pytest.mark.parametrize("oi_size", [10, 100, 1000])
+@pytest.mark.parametrize("oi_size", [10, 100])
 def test_attachments_size(config, oi_size, attch_size):
 
     # ois_size is controlled by flight_slots_size
@@ -86,7 +81,7 @@ def test_attachments_size(config, oi_size, attch_size):
     assert len(ag.attachments) == oi_size * attch_size
 
 
-@pytest.mark.parametrize("custom_size", [10, 100, 1000])
+@pytest.mark.parametrize("custom_size", [10, 100])
 def test_totals(custom_size):
     config = BaseConfig(
         size=custom_size,
