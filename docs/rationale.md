@@ -69,7 +69,7 @@ An instance of this provider can be imported from `project.providers.airport.fak
 Most of these methods implement a `quality` attribute, which can one from the set `("good","noisy","bad")`
 
 ```python
-from project.providers.airport import fake_airport
+from acme_data_generation.providers.airport import fake_airport
 >>> fake_airport.airport_code(quality="good") # valid random value
 'TIV'
 >>> fake_airport.airport_code(quality="noisy") # introduces noise
@@ -81,7 +81,7 @@ from project.providers.airport import fake_airport
 By default, if not implemented, all _bad_ values are strings of length 5 containing a combination of letters, numbers, and non-alphanumeric characters.
 
 ```python
-from project.providers.airport import fake_airport
+from acme_data_generation.providers.airport import fake_airport
 >>> fake_airport.random_string()
 'H\\<O}'>>>
 >>> fake_airport.random_string(10)

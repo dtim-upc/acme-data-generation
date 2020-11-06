@@ -4,7 +4,7 @@ import typing as T
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from project.scripts.generate import AircraftGenerator
+from acme_data_generation.scripts.generate import AircraftGenerator
 
 
 def test_instance_to_dict(fake):

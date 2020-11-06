@@ -7,10 +7,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database, drop_database
 
-from project.base.config import BaseConfig
-from project.providers.airport import AirportProvider
-from project.scripts.generate import AircraftGenerator
-from project.scripts.db_utils import create_all, delete_all
+from acme_data_generation.base.config import BaseConfig
+from acme_data_generation.providers.airport import AirportProvider
+from acme_data_generation.scripts.generate import AircraftGenerator
+from acme_data_generation.scripts.db_utils import create_all, delete_all
 
 
 @pytest.fixture()

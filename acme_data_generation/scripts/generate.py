@@ -7,11 +7,11 @@ from itertools import chain, zip_longest
 from pathlib import Path
 
 from faker import Faker
-from project.base.config import BaseConfig
-from project.models.data.serializable import Manufacturer, Reporter
-from project.models.declarative import aims, amos
-from project.providers.airport import fake_airport
-from project.scripts.db_utils import get_session
+from acme_data_generation.base.config import BaseConfig
+from acme_data_generation.models.data.serializable import Manufacturer, Reporter
+from acme_data_generation.models.declarative import aims, amos
+from acme_data_generation.providers.airport import fake_airport
+from acme_data_generation.scripts.db_utils import get_session
 from sqlalchemy import create_engine
 from tqdm import tqdm
 

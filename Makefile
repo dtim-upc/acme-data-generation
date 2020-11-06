@@ -9,17 +9,17 @@ export
 help: ## Print this help
 	@grep -E '^[a-zA-Z_-\.]+:.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-activate: ## Activate venv using Pipenv
-	pipenv shell
+shell: ## Activate venv using poetry
+	poetry shell
 
 test: ## Run tests with pytest
-	pytest tests
+	poetry run pytest tests
 
 coverage: ## Run tests with pytest and coverage
-	pytest --cov=project tests
+	poetry run pytest --cov=acme_data_generation tests
 
 memprofile.generate: ## Run memory profile with FIL
-	fil-profile run project/scripts/generate.py
+	poetry run fil-profile run project/scripts/generate.py
 
 business-rules: ## Convert markdown to pdf (just because I am lazy)
-	pandoc -s docs/business_rules.md -o docs/business_rules.pdf --template eisvogel
+	poetry run pandoc -s docs/business_rules.md -o docs/business_rules.pdf --template eisvogel

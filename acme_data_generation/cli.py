@@ -6,9 +6,9 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.url import URL
 
-from project.base.config import BaseConfig
-from project.scripts.db_utils import create_all, delete_all, get_session
-from project.scripts.generate import AircraftGenerator
+from acme_data_generation.base.config import BaseConfig
+from acme_data_generation.scripts.db_utils import create_all, delete_all, get_session
+from acme_data_generation.scripts.generate import AircraftGenerator
 
 logging.basicConfig(level=logging.INFO)
 

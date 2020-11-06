@@ -4,7 +4,7 @@ import typing as T
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from project.scripts.generate import AircraftGenerator
+from acme_data_generation.scripts.generate import AircraftGenerator
 
 COUNT_QUERY = 'SELECT COUNT(*) FROM "%s".%s'  # "schema".table
 

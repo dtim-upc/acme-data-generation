@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import INTERVAL, UUID
 from sqlalchemy.sql.expression import case
-from project.models.declarative.mixins import UtilsMixin
+from acme_data_generation.models.declarative.mixins import UtilsMixin
 from sqlalchemy.ext.declarative import ConcreteBase
 
 

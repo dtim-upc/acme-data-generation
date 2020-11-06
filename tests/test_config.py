@@ -1,5 +1,5 @@
 import pytest
-from project.base.config import BaseConfig
+from acme_data_generation.base.config import BaseConfig
 
 
 @pytest.mark.skip("not implemented")

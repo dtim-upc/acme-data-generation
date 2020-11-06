@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import sessionmaker
 
-from project.models.declarative import AIMSBase, AMOSBase
+from acme_data_generation.models.declarative import AIMSBase, AMOSBase
 
 
 # create a configured "Session" class

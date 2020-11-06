@@ -5,7 +5,7 @@ with open(os.path.join(os.path.dirname(__file__), "VERSION")) as version:
     VERSION = version.read()
 
 setup(
-    name="airbase-gen",
+    name="acme-data-generator",
     version=VERSION,
     packages=find_namespace_packages(),
     include_package_data=True,

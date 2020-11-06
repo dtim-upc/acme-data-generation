@@ -1,8 +1,8 @@
 import pytest
 import csv
 import typing as T
-from project.scripts.generate import AircraftGenerator
-from project.base.config import BaseConfig
+from acme_data_generation.scripts.generate import AircraftGenerator
+from acme_data_generation.base.config import BaseConfig
 
 
 def test_csv_files_written(tmp_path, gen):

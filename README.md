@@ -4,11 +4,12 @@ repository containing utilities for generating random data, for the DW laborator
 
 ## Getting started
 
-1. install dependencies with `pipenv install`
-2. install package with `pipenv install .` or `pipenv run pip install -e .` (for development)
-3. `airbase-gen --help`
+0. Have [poetry](https://python-poetry.org/docs/#installation) installed.
+1. Install package with `poetry install`
+2. Run `poetry run airbase-gen --help`
 
    ```bash
+
    usage: airbase-gen [-h] {csv,sql} ...
 
    positional arguments:
@@ -17,11 +18,12 @@ repository containing utilities for generating random data, for the DW laborator
    optional arguments:
    -h, --help  show this help message and exit
    ```
+3. Alternatively you can spawn a shell
 
 ## Load to csv
 
 ```bash
-$airbase-gen csv --help
+$poetry run airbase-gen csv --help
 usage: airbase-gen csv [-h] [--prob-noisy PROB_NOISY] [--prob-bad PROB_BAD] [-r ROWS] OUT_PATH
 
 positional arguments:
@@ -44,7 +46,7 @@ optional arguments:
 ## Load to database
 
 ```bash
-$airbase-gen sql --help
+$poetry run airbase-gen sql --help
 usage: airbase-gen sql [-h] [--prob-noisy PROB_NOISY] [--prob-bad PROB_BAD] [-r ROWS] [--hard] [-v] [--db-name DB_NAME] [--db-user DB_USER] --db-pwd DB_PWD [--db-host DB_HOST]
                        [--db-port DB_PORT]
 
@@ -82,8 +84,8 @@ The baseline is
 In code, this is roughly equivalent to
 
 ```python
-from project.base.config import BaseConfig
-from project.scripts.generate import AircraftGenerator
+from acme_data_generation.base.config import BaseConfig
+from acme_data_generation.scripts.generate import AircraftGenerator
 
 config = BaseConfig(
    size=rows,
@@ -112,12 +114,11 @@ run `pytest tests/`.
 
 ## Other goodies
 
-1. `pipenv install --dev`
-2. `make coverage` to run tests with coverage
+1. `make coverage` to run tests with coverage
 
    > poor man's badge: test coverage 77%
 
-3. `make memprofile.generate` to produce a memory usage profile
+2. `make memprofile.generate` to produce a memory usage profile
 
    > poor man's badge: memory consumption: 21.1[MB]@1000[rows].
 

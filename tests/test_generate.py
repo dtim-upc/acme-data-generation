@@ -5,8 +5,8 @@ import re
 
 from itertools import chain, permutations
 
-from project.scripts.generate import AircraftGenerator
-from project.base.config import BaseConfig
+from acme_data_generation.scripts.generate import AircraftGenerator
+from acme_data_generation.base.config import BaseConfig
 
 
 __doc__ = "Tests the generation of data"
