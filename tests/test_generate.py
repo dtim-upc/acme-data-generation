@@ -44,7 +44,7 @@ def test_slots_size(config, size):
 
 
 @pytest.mark.parametrize("size", [10, 100])
-def test_work_orders_size(config, size):
+def test_work_orders_size(size):
     """Tests that work orders' size matches
 
     :param config: [description]
@@ -53,32 +53,43 @@ def test_work_orders_size(config, size):
     :type size: [type]
     """
 
-    config.size = size
-    config.forecasted_orders_size = size
-    config.tlb_orders_size = size
-
+    config = BaseConfig(size=size, forecasted_orders_size=size, tlb_orders_size=size)
     ag = AircraftGenerator(config=config)
     ag.populate()
 
-    assert len(ag.tlb_orders) == size
-    assert len(ag.forecasted_orders) == size
-    assert len(ag.tlb_orders) + len(ag.forecasted_orders) == size * 2
+    assert len(ag.tlb_orders) <= size
+    assert len(ag.forecasted_orders) <= size
+    assert len(ag.tlb_orders) + len(ag.forecasted_orders) == size
 
 
 @pytest.mark.parametrize("attch_size", [1, 2])
-@pytest.mark.parametrize("oi_size", [10, 100])
-def test_attachments_size(config, oi_size, attch_size):
+@pytest.mark.parametrize("slots_size", [10, 100])
+def test_attachments_size(slots_size, attch_size):
 
-    # ois_size is controlled by flight_slots_size
-    # maintenance_events_size is controlled by maintenance_slots_size
-
-    config.flight_slots_size = oi_size
-    config.max_attach_size = attch_size
-
+    config = BaseConfig(
+        flight_slots_size=slots_size,
+        maintenance_slots_size=slots_size,
+        max_attach_size=attch_size,
+    )
     ag = AircraftGenerator(config=config)
+    assert ag.config.max_attach_size == attch_size
+    assert ag.config.maintenance_slots_size == slots_size
+    assert ag.config.flight_slots_size == slots_size
+
     ag.populate()
 
-    assert len(ag.attachments) == oi_size * attch_size
+    # ois_events_size is controlled by flight_slots_size, not cancelled
+    # maintenance_events_size is controlled by maintenance_slots_size
+    assert sum(1 for f in ag.flight_slots if not f.cancelled) == len(
+        ag.operational_interruptions
+    )
+    assert len(ag.maintenance_events) == len(ag.maintenance_slots)
+
+    assert (
+        len(ag.attachments)
+        == (len(ag.maintenance_events) + len(ag.operational_interruptions))
+        * ag.config.max_attach_size
+    )
 
 
 @pytest.mark.parametrize("custom_size", [10, 100])
@@ -104,7 +115,7 @@ def test_totals(custom_size):
     assert config.max_attach_size == 1
     assert config.max_work_orders == 1
 
-    entities =  [
+    entities = [
         ag.flight_slots,
         ag.maintenance_slots,
         ag.maintenance_events,
@@ -114,11 +125,10 @@ def test_totals(custom_size):
         ag.tlb_orders,
         ag.forecasted_orders,
         ag.attachments,
-        ag.maintenance_personnel
-        ]
+        ag.maintenance_personnel,
+    ]
 
     total_instances = sum([len(entity) for entity in entities])
-
 
     assert ag.total_entities == len(entities)
     assert ag.total_instances == total_instances
@@ -299,7 +309,7 @@ def test_work_orders_have_valid_aircraftregistration(config):
     """Tests that the relation between workorders and maintenanceevents is meaningful
 
     Check issue #6
-    
+
     Basically, we want to test that the following
 
     ```sql
@@ -315,34 +325,39 @@ def test_work_orders_have_valid_aircraftregistration(config):
             "AMOS".maintenanceevents m2
         where
             w.aircraftregistration = m2.aircraftregistration
-            and w.executiondate between starttime and starttime + duration) 
+            and w.executiondate between starttime and starttime + duration)
     ```
 
     returns nothing, if prob_good = 1
     returns a proportion of size of prob_bad and prob_noisy, if they are not zero
     """
 
-
-    config.size = 100
+    config = BaseConfig(size=10)
     ag = AircraftGenerator(config=config)
     ag.populate()
 
-    assert config._prob_weights == [1, 0, 0]
+    assert ag.config._prob_weights == [1, 0, 0]
 
     # uno de los business rules dice que cada workorders por un aircraft debería
-    # estar dentro de al menos un maintenance events 
+    # estar dentro de al menos un maintenance events
     # (w.executiondate between starttime and starttime+duration).
-    airc_regs_wo = [wo.aircraftregistration for wo in chain(ag.forecasted_orders, ag.tlb_orders)]
-    airc_regs_me = [me.aircraftregistration for me in ag.operational_interruptions]
+    airc_regs_wo = [
+        wo.aircraftregistration for wo in chain(ag.forecasted_orders, ag.tlb_orders)
+    ]
 
-    # Maintenance event can include several work orders and each work order is 
-    # inside one maintenance event. However, this reference is not explicit. 
-    # It is represented as I said above by the same aircraft registration and 
-    # the fact that the execution date of the work order is inside the time 
+    airc_regs_me = [
+        me.aircraftregistration
+        for me in ag.maintenance_events
+    ]
+
+    # Maintenance event can include several work orders and each work order is
+    # inside one maintenance event. However, this reference is not explicit.
+    # It is represented as I said above by the same aircraft registration and
+    # the fact that the execution date of the work order is inside the time
     # interval of the maintenance event (startdate, startdate + duration).
 
-    assert airc_regs_me == airc_regs_wo
-
+    assert len(airc_regs_me) == len(airc_regs_wo)
+    assert set(airc_regs_me) == set(airc_regs_wo)
 
 
 def test_work_orders_have_valid_executiondate(config):
@@ -350,7 +365,7 @@ def test_work_orders_have_valid_executiondate(config):
 
     this covers the second part of the query
 
-    
+
     Basically, we want to test that the following
 
     ```sql
@@ -381,14 +396,16 @@ def test_work_orders_have_valid_executiondate(config):
 
     assert config._prob_weights == [1, 0, 0]
 
-    wo_execution_date = [wo.executiondate for wo in chain(ag.tlb_orders, ag.forecasted_orders)]
+    wo_execution_date = [
+        wo.executiondate for wo in chain(ag.tlb_orders, ag.forecasted_orders)
+    ]
     me_airc_starttimes = [me.starttime for me in ag.maintenance_events]
     me_airc_endtimes = [me.starttime + me.duration for me in ag.maintenance_events]
 
-    # Maintenance event can include several work orders and each work order is 
-    # inside one maintenance event. However, this reference is not explicit. 
+    # Maintenance event can include several work orders and each work order is
+    # inside one maintenance event. However, this reference is not explicit.
     # It is represented as I said above by the same aircraft registration
-    # 2) and the fact that the execution date of the work order is inside the time 
+    # 2) and the fact that the execution date of the work order is inside the time
     # interval of the maintenance event (startdate, startdate + duration).
 
     for ed, start, end in zip(wo_execution_date, me_airc_starttimes, me_airc_endtimes):
@@ -398,18 +415,17 @@ def test_work_orders_have_valid_executiondate(config):
 
 def test_slots_with_same_aircraft_dont_overlap():
     """tests R20: Two Slots of the same aircraft cannot overlap in time.
-    
+
     SELECT count(*)
     FROM flights f1
     WHERE NOT EXISTS
     (SELECT * FROM flights f2 WHERE f1.flightid <> f2.flightid and f1.aircraftregistration = f2.aircraftregistration
     and (f1.actualdeparture, f1.actualarrival) overlaps (f2.actualdeparture,f2.actualarrival));
-    
+
     currently ~9900 out of 10000 rows don't pass this test
     """
-    
 
-    config = BaseConfig(size = 1000)
+    config = BaseConfig(size=1000)
     config._prob_weights = [1, 0, 0]
     ag = AircraftGenerator(config=config)
     ag.populate()
@@ -423,7 +439,11 @@ def test_slots_with_same_aircraft_dont_overlap():
 
     for ar in aircraft_registrations:
         # fetch all flights with that ar code
-        same_aircraft_flights = [f for f in ag.flight_slots if (f.aircraftregistration == ar and f.cancelled is False)]
+        same_aircraft_flights = [
+            f
+            for f in ag.flight_slots
+            if (f.aircraftregistration == ar and f.cancelled is False)
+        ]
         # check that the flights with this ar don't overlap
         if len(same_aircraft_flights) >= 2:
             for flight_1, flight_2 in permutations(same_aircraft_flights, 2):
@@ -431,7 +451,7 @@ def test_slots_with_same_aircraft_dont_overlap():
                 te1 = flight_1.actualarrival
                 ts2 = flight_2.actualdeparture
                 te2 = flight_2.actualarrival
-                    
+
                 min_end = min(te1, te2)
                 max_start = max(ts1, ts2)
 

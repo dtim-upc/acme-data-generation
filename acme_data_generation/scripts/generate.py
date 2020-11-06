@@ -291,17 +291,11 @@ class AircraftGenerator:
         logging.info("Generating attachments")
 
         for event in tqdm(chain(self.operational_interruptions, self.maintenance_events), total=tqdm_total_at):
-            event_attachments = []
             # R5
             logging.debug(f"Generating attachments for event '{event.maintenanceid}'")
-            for _ in range(random.randint(a=1, b=self.config.max_attach_size)):
+            for _ in range(self.config.max_attach_size):
                 fake_attachment = fake_airport.attachment(event=event)
-                event_attachments.append(fake_attachment)
-
-            # we don't want nested lists
-            self.attachments.extend(event_attachments)
-
-
+                self.attachments.append(fake_attachment)
         logging.info("Done")
         return self
 
