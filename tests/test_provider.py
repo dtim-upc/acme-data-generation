@@ -84,15 +84,15 @@ def test_make_noisy(fake):
     assert re_noisy_string.search(noisified_string) is not None
 
 
-def test_flight_slots_diff_scheduled_arrival_departure(fake):
+@pytest.mark.parametrize("flag", [True, False])
+def test_flight_slots_diff_scheduled_arrival_departure(fake, flag):
     """Tests that the difference between arrivals and departures is within range
 
     refer to the first part of the issue in
     https://github.com/diegoquintanav/acme-data-generation/issues/6
     """
 
-    fs = fake.flight_slot()
-
+    fs = fake.flight_slot(cancelled = flag)
     assert (fs.scheduledarrival - fs.scheduleddeparture) <= datetime.timedelta(days=1)
 
 
@@ -103,8 +103,7 @@ def test_flight_slots_diff_actual_arrival_departure(fake):
     https://github.com/diegoquintanav/acme-data-generation/issues/6
     """
 
-    fs = fake.flight_slot()
-
+    fs = fake.flight_slot(cancelled = False)
     assert fs.actualarrival - fs.actualdeparture < datetime.timedelta(days=1)
 
 
@@ -113,7 +112,7 @@ def test_flight_slots_diff_arrivals(fake):
     """Tests that the difference between actual and scheduled arrivals makes sense
     """
 
-    fs = fake.flight_slot()
+    fs = fake.flight_slot(cancelled = False)
     assert (fs.actualarrival >= fs.scheduledarrival)
     assert (fs.actualarrival - fs.scheduledarrival) <= timedelta(minutes=40)
 
@@ -122,7 +121,7 @@ def test_flight_slots_diff_departures(fake):
     """Tests that the difference between actual and scheduled departures makes sense
     """
 
-    fs = fake.flight_slot()
+    fs = fake.flight_slot(cancelled = False)
     assert (fs.actualdeparture >= fs.scheduleddeparture)
     assert (fs.actualdeparture - fs.scheduleddeparture) <= timedelta(minutes=40)
 

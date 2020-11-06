@@ -1626,20 +1626,17 @@ class AirportProvider(BaseProvider):
     #                                     AIMS                                     #
     # ---------------------------------------------------------------------------- #
 
-    def flight_id(self, quality="good") -> str:
-        return self.flight_slot(quality=quality).flightid
-
-    def flight_slot(self, *args, **kwargs) -> aims.FlightSlot:
+    def slot(self, *args, **kwargs) -> aims.Slot:
 
         # args, kwargs unpacking
         cancelled = kwargs.pop("cancelled", None)
         config = kwargs.pop("config", {})
         manufacturer = kwargs.pop("manufacturer", None)
         quality = kwargs.pop("quality", "good")
+        kind = kwargs.pop("kind", None)
 
-        # TODO: remove these defaults and expose them at a higher level
+        # change attributes depending on the quality passed
         multiplier = 1 if quality in {"good", "noisy"} else self.random_int(5, 10)
-
         max_duration: int = config.get("max_duration", 5) * multiplier
         max_delay: int = config.get("max_delay", 40) * multiplier
         max_pas: int = config.get("max_pas", 180) * multiplier
@@ -1649,107 +1646,110 @@ class AirportProvider(BaseProvider):
         max_fcrew: int = config.get("max_fcrew", 3) * multiplier
         min_fcrew: int = config.get("min_fcrew", 2) * multiplier
 
-        route: T.List[str] = self.flight_route()
-        orig: str = (
-            route[0] if quality == "good" else self.airport_code(quality=quality)
-        )
-        dest: str = (
-            route[1] if quality == "good" else self.airport_code(quality=quality)
-        )
-
-        flight_number: str = self.flight_number(quality=quality)
-        passengers: int = self.random_int(min=min_pas, max=max_pas)
-        cabin_crew: int = self.random_int(min=min_ccrew, max=max_ccrew)
-        flight_crew: int = self.random_int(min=min_fcrew, max=max_fcrew)
-
+        # base properties
         # R19
-        scheduled_departure: datetime = self.flight_timestamp(quality=quality)
-        scheduled_arrival: datetime = scheduled_departure + self.duration(
+        scheduleddeparture: datetime = self.flight_timestamp(quality=quality)
+        scheduledarrival: datetime = scheduleddeparture + self.duration(
             max_hours=max_duration
         )
 
-        aircraft_registration: str = getattr(
+        aircraftregistration: str = getattr(
             manufacturer, "aircraft_reg_code", None
         ) or self.aircraft_registration_code(quality=quality)
 
-        if cancelled is None:
-            cancelled = self.generator.pybool()
+        if kind is None:
+            return aims.Slot(
+                aircraftregistration=aircraftregistration,
+                scheduleddeparture=scheduleddeparture,
+                scheduledarrival=scheduledarrival,
+                kind=self.slot_kind(quality=quality),
+            )
+        elif kind == "Flight":
+            route: T.List[str] = self.flight_route()
+            orig: str = (
+                route[0] if quality == "good" else self.airport_code(quality=quality)
+            )
+            dest: str = (
+                route[1] if quality == "good" else self.airport_code(quality=quality)
+            )
 
-        # R22-B
-        # if flight is cancelled, then some attributes must be empty
-        if cancelled:
-            delay = 0
-            delay_code = None
-            actual_arrival = None
-            actual_departure = None
-        else:
-            delay = self.duration(max_minutes=max_delay)
-            delay_code = self.delay_code(quality=quality)
-            # R22
-            actual_departure = scheduled_departure + delay
-            actual_arrival = scheduled_arrival + delay
+            flight_number: str = self.flight_number(quality=quality)
+            passengers: int = self.random_int(min=min_pas, max=max_pas)
+            cabin_crew: int = self.random_int(min=min_ccrew, max=max_ccrew)
+            flight_crew: int = self.random_int(min=min_fcrew, max=max_fcrew)
 
-        # stfrtime uses here the format that was in the java code.
-        # This date is not ISO 8601 compliant, but it could be set
-        # as a config parameter later, I guess
+            if cancelled is None:
+                cancelled = self.generator.pybool()
 
-        # rule R17, R12
-        flight_id: str = "-".join(
-            [
-                scheduled_departure.strftime("%d%m%y"),
-                orig,
-                dest,
-                flight_number,
-                aircraft_registration,
-            ]
-        )
+            # R22-B
+            # if flight is cancelled, then some attributes must be empty
+            if cancelled:
+                delay = 0
+                delay_code = None
+                actualarrival = None
+                actualdeparture = None
+            else:
+                delay = self.duration(max_minutes=max_delay)
+                delay_code = self.delay_code(quality=quality)
+                # R22
+                actualdeparture = scheduleddeparture + delay
+                actualarrival = scheduledarrival + delay
 
-        if quality == "bad":
-            # we swap order to corrupt data
-            actual_departure, actual_arrival = actual_arrival, actual_departure
-            aircraft_registration = self.aircraft_registration_code(quality=quality)
+            # stfrtime uses here the format that was in the java code.
+            # This date is not ISO 8601 compliant, but it could be set
+            # as a config parameter later, I guess
 
-        return aims.FlightSlot(
-            aircraftregistration=aircraft_registration,
-            scheduleddeparture=scheduled_departure,
-            scheduledarrival=scheduled_arrival,
-            kind="Flight",
-            flightid=flight_id,
-            departureairport=orig,
-            arrivalairport=dest,
-            actualdeparture=actual_departure,
-            actualarrival=actual_arrival,
-            cancelled=cancelled,
-            delaycode=delay_code,
-            passengers=passengers,
-            cabincrew=cabin_crew,
-            flightcrew=flight_crew,
-        )
+            # rule R17, R12
+            flight_id: str = "-".join(
+                [
+                    scheduleddeparture.strftime("%d%m%y"),
+                    orig,
+                    dest,
+                    flight_number,
+                    aircraftregistration,
+                ]
+            )
+
+            if quality == "bad":
+                # we swap order to corrupt data
+                actualdeparture, actualarrival = actualarrival, actualdeparture
+                aircraftregistration = self.aircraft_registration_code(quality=quality)
+
+            return aims.FlightSlot(
+                aircraftregistration=aircraftregistration,
+                scheduleddeparture=scheduleddeparture,
+                scheduledarrival=scheduledarrival,
+                kind="Flight",
+                flightid=flight_id,
+                departureairport=orig,
+                arrivalairport=dest,
+                actualdeparture=actualdeparture,
+                actualarrival=actualarrival,
+                cancelled=cancelled,
+                delaycode=delay_code,
+                passengers=passengers,
+                cabincrew=cabin_crew,
+                flightcrew=flight_crew,
+            )
+        elif kind == "Maintenance":
+            return aims.MaintenanceSlot(
+                aircraftregistration=aircraftregistration,
+                scheduleddeparture=scheduleddeparture,
+                scheduledarrival=scheduledarrival,
+                kind="Maintenance",
+                programmed=self.generator.pybool(),
+            )
+
+    def flight_slot(self, *args, **kwargs) -> aims.FlightSlot:
+
+        return self.slot(*args, kind="Flight", **kwargs)
 
     def maintenance_slot(self, *args, **kwargs) -> aims.MaintenanceSlot:
 
-        flight_slot = kwargs.pop("flight_slot", None)
-        fs = flight_slot or self.flight_slot(*args, **kwargs)
+        return self.slot(*args, kind="Maintenance", **kwargs)
 
-        return aims.MaintenanceSlot(
-            aircraftregistration=fs.aircraftregistration,
-            scheduleddeparture=fs.scheduleddeparture,
-            scheduledarrival=fs.scheduledarrival,
-            kind="Maintenance",
-            programmed=self.generator.pybool(),
-        )
-
-    def slot(self, *args, **kwargs) -> aims.MaintenanceSlot:
-
-        flight_slot = kwargs.pop("flight_slot", None)
-        fs = flight_slot or self.flight_slot(*args, **kwargs)
-
-        return aims.Slot(
-            aircraftregistration=fs.aircraftregistration,
-            scheduleddeparture=fs.scheduled_departure,
-            scheduledarrival=fs.scheduled_arrival,
-            kind=self.slot_kind(kwargs.get("quality", "good")),
-        )
+    def flight_id(self, quality="good") -> str:
+        return self.flight_slot(quality=quality).flightid
 
 
 fake_airport = Faker()
