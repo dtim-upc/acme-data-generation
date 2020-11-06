@@ -14,8 +14,7 @@ from acme_data_generation.models.data.serializable import Manufacturer, Reporter
 
 class AirportProvider(BaseProvider):
 
-    """A provider to be used with a Faker instance
-    """
+    """A provider to be used with a Faker instance"""
 
     def random_string(
         self,
@@ -1045,7 +1044,9 @@ class AirportProvider(BaseProvider):
 
         return self._quality_dispatcher(mapping, quality)
 
-    def maintenance_event_kind(self, quality: str = "good", kind: T.Optional[str] = None) -> str:
+    def maintenance_event_kind(
+        self, quality: str = "good", kind: T.Optional[str] = None
+    ) -> str:
         """return a maintenanceeventkind for any slot"""
 
         if kind == "Flight":
@@ -1053,11 +1054,12 @@ class AirportProvider(BaseProvider):
         elif kind == "Maintenance":
             provider = self._maintenance_event_kinds_maintenance_slot
         else:
-            provider = self._maintenance_event_kinds_maintenance_slot + self._maintenance_event_kinds_flight_slot
+            provider = (
+                self._maintenance_event_kinds_maintenance_slot
+                + self._maintenance_event_kinds_flight_slot
+            )
 
-        mapping = {
-            "good": self.random_element(provider)
-        }
+        mapping = {"good": self.random_element(provider)}
 
         # maintenanceevent kind is a datatype and raises issues if not right
         mapping["bad"] = mapping["noisy"] = mapping["good"]
@@ -1120,8 +1122,8 @@ class AirportProvider(BaseProvider):
     def aircraft_manufacturer(self, quality: str = "good") -> str:
         mapping = {
             "good": self.random_element(self._aircraft_manufacturers),
-            "bad": self.generator.company()
-            }
+            "bad": self.generator.company(),
+        }
         return self._quality_dispatcher(mapping, quality)
 
     def flight_route(self) -> T.List[str]:
@@ -1268,11 +1270,9 @@ class AirportProvider(BaseProvider):
         return duration
 
     def mel_reporting_deadline_duration(
-        self, mel_type: T.Optional[str] = None,
-        quality: str = "good"
-        ) -> timedelta:
-        """Returns a timedelta duration object, based on a MEL type.
-        """
+        self, mel_type: T.Optional[str] = None, quality: str = "good"
+    ) -> timedelta:
+        """Returns a timedelta duration object, based on a MEL type."""
 
         if quality == "bad":
             mel_type = "bad"
@@ -1285,7 +1285,7 @@ class AirportProvider(BaseProvider):
             "B": timedelta(days=10),
             "C": timedelta(days=30),
             "D": timedelta(days=120),
-            "bad": timedelta(days=self.random_int(max=500))
+            "bad": timedelta(days=self.random_int(max=500)),
         }
 
         return _mel_mapping.get(mel_type, timedelta())
@@ -1319,8 +1319,7 @@ class AirportProvider(BaseProvider):
         """
 
         return Reporter(
-            reporteurid=self.random_int(), 
-            airport=self.airport_code(quality=quality)
+            reporteurid=self.random_int(), airport=self.airport_code(quality=quality)
         )
 
     # ---------------------------------------------------------------------------- #
@@ -1332,13 +1331,10 @@ class AirportProvider(BaseProvider):
         max_id: int = 9999,
         quality: str = "good",
         work_order: T.Optional[
-            T.Union[
-                amos.TechnicalLogbookOrder, 
-                amos.ForecastedOrder, 
-                amos.WorkOrder]] = None,
+            T.Union[amos.TechnicalLogbookOrder, amos.ForecastedOrder, amos.WorkOrder]
+        ] = None,
     ) -> amos.Workpackage:
-        """Produces a random workpackage object, possibly seeded by a workorder
-        """
+        """Produces a random workpackage object, possibly seeded by a workorder"""
 
         work_order = work_order or self.work_order(quality=quality)
 
@@ -1353,26 +1349,27 @@ class AirportProvider(BaseProvider):
         )
 
     def attachment(
-        self, 
-        event: T.Optional[T.Union[amos.MaintenanceEvent, amos.OperationalInterruption]] = None,
-        quality = "good"
+        self,
+        event: T.Optional[
+            T.Union[amos.MaintenanceEvent, amos.OperationalInterruption]
+        ] = None,
+        quality="good",
     ) -> amos.Attachment:
         """Produces a random instance of amos.Attachment, possibly seeded by a maintenance event"""
 
-        event = (event or 
-                self.maintenance_event(quality=quality))
+        event = event or self.maintenance_event(quality=quality)
 
         return amos.Attachment(
-            file=self.generator.uuid4(), # R4
-            event=event.maintenanceid) # R5
+            file=self.generator.uuid4(), event=event.maintenanceid  # R4
+        )  # R5
 
     def work_order(
         self,
         max_id: int = 9999,
         quality: str = "good",
         maintenance_event: T.Optional[amos.MaintenanceEvent] = None,
-        kind: T.Optional[str] = None
-        ) -> T.Union[amos.WorkOrder, amos.ForecastedOrder, amos.TechnicalLogbookOrder]:
+        kind: T.Optional[str] = None,
+    ) -> T.Union[amos.WorkOrder, amos.ForecastedOrder, amos.TechnicalLogbookOrder]:
 
         """Produces a random instance of a work order object, based on `kind`
 
@@ -1381,17 +1378,20 @@ class AirportProvider(BaseProvider):
 
         # early arg validation
         if kind:
-            assert (kind in {"Forecast", "TechnicalLogBook"}), 'kind must be one of {"Forecast", "TechnicalLogBook"}'
-        
+            assert kind in {
+                "Forecast",
+                "TechnicalLogBook",
+            }, 'kind must be one of {"Forecast", "TechnicalLogBook"}'
+
         # a work order is referenced from at least one maintenance event
         maintenance_event = maintenance_event or self.maintenance_event(quality=quality)
-        
+
         # R25-A
         aircraft_registration = maintenance_event.aircraftregistration
 
         # R25-C
         executionplace = maintenance_event.airport
-        
+
         # other random attributes
         workorderid = self.random_int(max=max_id)
         workpackageid = self.random_int(max=max_id)
@@ -1400,7 +1400,7 @@ class AirportProvider(BaseProvider):
 
             # R27
             planned = maintenance_event.starttime
-            
+
             # R26
             deadline = planned + maintenance_event.duration
 
@@ -1421,7 +1421,8 @@ class AirportProvider(BaseProvider):
                 planned=planned,
                 frequency=self.random_int(max=100),
                 frequencyunits=self.frequency_units_kind(quality=quality),
-                forecastedmanhours=self.random_int(max=20))
+                forecastedmanhours=self.random_int(max=20),
+            )
             return fo
         elif kind == "TechnicalLogBook":
 
@@ -1430,7 +1431,7 @@ class AirportProvider(BaseProvider):
 
             # R28
             reportingdate = maintenance_event.starttime
-            
+
             # R29
             due = maintenance_event.starttime + maintenance_event.duration
             due += self.mel_reporting_deadline_duration(mel_type=mel, quality=quality)
@@ -1453,27 +1454,26 @@ class AirportProvider(BaseProvider):
                 reportingdate=reportingdate,
                 due=due,
                 deferred=self.generator.pybool(),
-                mel=mel
+                mel=mel,
             )
 
-            return tlb 
+            return tlb
         else:
             executiondate = self.generator.date_time_ad(
                 start_datetime=maintenance_event.starttime,
                 end_datetime=maintenance_event.starttime + maintenance_event.duration,
             )
-            
+
             wo = amos.WorkOrder(
                 workorderid=workorderid,
                 aircraftregistration=aircraft_registration,
                 executiondate=executiondate,
                 executionplace=executionplace,
                 workpackage=workpackageid,
-                kind=self.work_order_kind(quality=quality)
+                kind=self.work_order_kind(quality=quality),
             )
-            
+
             return wo
-        
 
     def forecasted_order(
         self,
@@ -1483,10 +1483,11 @@ class AirportProvider(BaseProvider):
     ) -> amos.ForecastedOrder:
 
         fo = self.work_order(
-            max_id=max_id, 
+            max_id=max_id,
             quality=quality,
             maintenance_event=maintenance_event,
-            kind="Forecast")
+            kind="Forecast",
+        )
 
         return fo
 
@@ -1498,10 +1499,11 @@ class AirportProvider(BaseProvider):
     ) -> amos.TechnicalLogbookOrder:
 
         tlb = self.work_order(
-            max_id=max_id, 
+            max_id=max_id,
             quality=quality,
             maintenance_event=maintenance_event,
-            kind="TechnicalLogBook")
+            kind="TechnicalLogBook",
+        )
 
         return tlb
 
@@ -1522,7 +1524,11 @@ class AirportProvider(BaseProvider):
 
         # if no slot is provided, then we generate one at random
         if slot is None:
-            slot = self.flight_slot(quality=quality) if random.random() < 0.5 else self.maintenance_slot(quality=quality)
+            slot = (
+                self.flight_slot(quality=quality)
+                if random.random() < 0.5
+                else self.maintenance_slot(quality=quality)
+            )
 
         oi_starttime = slot.scheduleddeparture
         slot_kind = slot.kind
@@ -1533,7 +1539,7 @@ class AirportProvider(BaseProvider):
             departure = slot.scheduleddeparture
 
             # R13: Values can't be null, and must be the same as in the flight
-            delay_code = slot.delaycode 
+            delay_code = slot.delaycode
 
             if quality == "bad":
                 airport = self.airport_code(quality=quality)
@@ -1543,7 +1549,9 @@ class AirportProvider(BaseProvider):
                 airport = slot.departureairport
 
             flight_id = slot.flightid  # R12-C
-            maintenanceeventkind = self.maintenance_event_kind(quality=quality, kind="Maintenance")
+            maintenanceeventkind = self.maintenance_event_kind(
+                quality=quality, kind="Maintenance"
+            )
 
             duration = self.interruption_duration(
                 interruption_type=maintenanceeventkind
@@ -1551,9 +1559,7 @@ class AirportProvider(BaseProvider):
 
             # R8-A
             maintenance_id = "_".join(
-                [
-                    str(self.random_int(max=max_id)), 
-                    str(oi_starttime + duration)]
+                [str(self.random_int(max=max_id)), str(oi_starttime + duration)]
             )
         else:
             # Then it is a MaintenanceSlot instance
@@ -1567,7 +1573,7 @@ class AirportProvider(BaseProvider):
             airport = self.airport_code(quality=quality)
 
             maintenanceeventkind = self.maintenance_event_kind(
-                quality=quality, kind = "Flight"
+                quality=quality, kind="Flight"
             )
 
             duration = self.interruption_duration(
@@ -1576,9 +1582,7 @@ class AirportProvider(BaseProvider):
 
             # R8-A
             maintenance_id = "_".join(
-                [
-                    str(self.random_int(max=max_id)), 
-                    str(oi_starttime + duration)]
+                [str(self.random_int(max=max_id)), str(oi_starttime + duration)]
             )
 
         oi = amos.OperationalInterruption(
@@ -1603,14 +1607,11 @@ class AirportProvider(BaseProvider):
         operational_interruption: T.Optional[amos.OperationalInterruption] = None,
         quality: str = "good",
     ) -> amos.MaintenanceEvent:
-        """Produces a random maintenance event from a random operational interruption
-        """
+        """Produces a random maintenance event from a random operational interruption"""
 
-        oi = (operational_interruption or 
-                self.operational_interruption_event(
-                    max_id=max_id, 
-                    slot=slot, 
-                    quality=quality))
+        oi = operational_interruption or self.operational_interruption_event(
+            max_id=max_id, slot=slot, quality=quality
+        )
 
         return amos.MaintenanceEvent(
             maintenanceid=oi.maintenanceid,
