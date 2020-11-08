@@ -53,7 +53,7 @@ It contains the models used by SQLAlchemy, a python ORM (Object Relational mappe
 
 These models are separated by schema, e.g. _AMOS_ and _AIMS_ and also by the type of mapping used _declarative_ (more abstract) and _classical_ (more explicit). Only the declarative models are being used, the classical were the first iteration.
 
-There are also the models from `project.models.data.serializable` that describe the data that is stored as CSV files, e.g. `Manufacturer` and `Reporter`
+There are also the models from `project.models.non_orm.serializable` that describe the data that is stored as CSV files, e.g. `Manufacturer` and `Reporter`
 
 ### `project.cli`
 

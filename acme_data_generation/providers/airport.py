@@ -9,7 +9,7 @@ from faker import Faker
 from faker.providers import BaseProvider
 
 from acme_data_generation.models.declarative import aims, amos
-from acme_data_generation.models.data.serializable import Manufacturer, Reporter
+from acme_data_generation.models.non_orm.serializable import Manufacturer, Reporter
 
 
 class AirportProvider(BaseProvider):
