@@ -57,9 +57,9 @@ class BaseConfig:
     #                              randomness controls                             #
     # ---------------------------------------------------------------------------- #
 
-    prob_good: float = attr.ib(1.0, validator=check_probability)
-    prob_noisy: float = attr.ib(0.0, validator=check_probability)
-    prob_bad: float = attr.ib(0.0, validator=check_probability)
+    prob_noisy: T.Optional[float] = None
+    prob_bad: T.Optional[float] = None
+    prob_good: T.Optional[float] = None
 
     # ---------------------------------------------------------------------------- #
     #                              database parameters                             #
@@ -84,3 +84,37 @@ class BaseConfig:
             self.work_packages_size = self.size
 
         self._prob_weights = [self.prob_good, self.prob_noisy, self.prob_bad]
+
+        # we want to check that probabilities are consistent
+        if all(x is None for x in self._prob_weights):
+            self.prob_good = 1
+            self.prob_bad = 0
+            self.prob_noisy = 0
+       
+        if self.prob_good is None:
+            if self.prob_noisy is None:
+                self.prob_good = 1 - self.prob_bad
+                self.prob_noisy = 0
+            else:
+                self.prob_good = 1 - self.prob_bad - self.prob_noisy
+
+        if self.prob_bad is None:
+            if self.prob_noisy is None:
+                self.prob_bad = 1 - self.prob_good
+                self.prob_noisy = 0
+            else:
+                self.prob_bad = 1 - self.prob_good - self.prob_noisy
+
+        if self.prob_noisy is None:
+            if self.prob_bad is None:
+                self.prob_noisy = 1 - self.prob_good
+                self.prob_bad = 0
+            else:
+                self.prob_noisy = 1 - self.prob_good - self.prob_bad
+
+        self._prob_weights = [self.prob_good, self.prob_noisy, self.prob_bad]
+
+        assert sum(self._prob_weights) == 1, "Probabilities must add to 1"
+
+
+        

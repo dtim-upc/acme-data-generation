@@ -137,172 +137,39 @@ def test_totals(custom_size):
 # -------------------------- test quality parameter -------------------------- #
 
 
-def test_quality_distributions():
+@pytest.mark.parametrize("which", ["g", "b", "n"])
+def test_quality_distributions_raises(which):
+
+    prob_good=0.5
+    prob_noisy=0.4
+    prob_bad=0.1
+
+    if which == "g":
+        prob_good = 1
+    elif which == "b":
+        prob_bad = 1
+    else:
+        prob_noisy = 1
+
+    with pytest.raises(AssertionError):
+        BaseConfig(
+            size=10,
+            prob_good=prob_good,
+            prob_noisy=prob_noisy,
+            prob_bad=prob_bad,
+        )
+
+
+def test_quality_distributions_sums_to_1():
 
     config = BaseConfig(
         size=10,
         prob_good=0.5,
         prob_noisy=0.4,
-        prob_bad=0.3,
+        prob_bad=0.1,
     )
-    assert config._prob_weights == [0.5, 0.4, 0.3]
 
-
-@pytest.mark.skip(
-    "Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2"
-)
-def test_distributions_only_noisy():
-    """It's not trivial to test that *all* values are noisy
-
-    In the absence of a validation library, we will try to test this
-    using regexp and good intentions for now"""
-
-    config = BaseConfig(size=10, prob_good=0, prob_noisy=1, prob_bad=0)
-    ag = AircraftGenerator(config=config)
-    ag.populate()
-
-    frequency_units_kinds = {"Flights", "Days", "Miles"}
-
-    # we will check first that all kinds are not conformant
-    noisy_kinds = (fo.frequencyunits for fo in ag.forecasted_orders)
-
-    # but still they look like conformant values
-    re_kind = re.compile(r"^\s*flights|days|miles\s*$", flags=re.I)
-
-    for kind in noisy_kinds:
-        assert kind not in frequency_units_kinds
-        assert re_kind.search(kind)
-
-    # we will then reconstruct them into proper values
-    stripped_kinds = (kind.strip() for kind in noisy_kinds)
-    rebuilt_kinds = (kind[0].upper() + kind[1:].lower() for kind in stripped_kinds)
-
-    # check that these values are now valid
-    for kind in rebuilt_kinds:
-        assert kind in frequency_units_kinds
-
-
-@pytest.mark.skip(
-    "Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2"
-)
-def test_distributions_only_bad():
-    """It's not trivial to test that *all* values are bad
-
-    In the absence of a validation library, we will try to test this
-    using regexp and good intentions for now"""
-
-    config = BaseConfig(size=10, prob_good=0, prob_noisy=0, prob_bad=1)
-    ag = AircraftGenerator(config=config)
-    ag.populate()
-
-    frequency_units_kinds = {"Flights", "Days", "Miles"}
-
-    # we will check first that all kinds are not conformant
-    bad_kinds = (fo.frequencyunits for fo in ag.forecasted_orders)
-
-    # and that they don't look like conformant values
-    re_kind = re.compile(r"^\s*flights|days|miles\s*$", flags=re.I)
-
-    for kind in bad_kinds:
-        assert kind not in frequency_units_kinds
-        assert re_kind.search(kind) is None
-
-    # we will then reconstruct them into proper values
-    stripped_kinds = (kind.strip() for kind in bad_kinds)
-    rebuilt_kinds = (kind[0].upper() + kind[1:].lower() for kind in stripped_kinds)
-
-    # check that these values are now valid
-    for kind in rebuilt_kinds:
-        assert kind not in frequency_units_kinds
-        assert re_kind.search(kind) is None
-
-
-def test_distributions_only_good():
-    """It's not trivial to test that *all* values are bad
-
-    In the absence of a validation library, we will try to test this
-    using regexp and good intentions for now"""
-
-    config = BaseConfig(size=10, prob_good=1, prob_noisy=0, prob_bad=0)
-    ag = AircraftGenerator(config=config)
-    ag.populate()
-
-    frequency_units_kinds = {"Flights", "Days", "Miles"}
-
-    # we will check first that all kinds are not conformant
-    good_kinds = (fo.frequencyunits for fo in ag.forecasted_orders)
-
-    # and that they don't look like conformant values
-    re_kind = re.compile(r"^Flights|Days|Miles$")
-
-    for kind in good_kinds:
-        assert kind in frequency_units_kinds
-        assert re_kind.search(kind)
-
-    # we will then reconstruct them into proper values
-    stripped_kinds = (kind.strip() for kind in good_kinds)
-    rebuilt_kinds = (kind[0].upper() + kind[1:].lower() for kind in stripped_kinds)
-
-    # check that these values are still valid
-    for kind in good_kinds:
-        assert kind in frequency_units_kinds
-        assert re_kind.search(kind)
-
-
-@pytest.mark.skip(
-    "Test needs an update, see https://github.com/diegoquintanav/acme-data-generation/issues/2"
-)
-def test_distributions_mixed_qualities():
-    """Again, it's not trivial to test this.
-
-    In the absence of a validation library, we will try to test this
-    using regexp and good intentions for now"""
-
-    config = BaseConfig(size=100, prob_good=0.6, prob_noisy=0.3, prob_bad=0.1)
-
-    # we will check first that all kinds are not conformant
-    # and that they don't look like conformant values
-    re_kind_good = re.compile(r"^Flights|Days|Miles$")
-    re_kind_noisy = re.compile(r"^\s*flights|days|miles\s*$", flags=re.I)
-    frequency_units_kinds = {"Flights", "Days", "Miles"}
-
-    count_good = []
-    count_noisy = []
-    count_bad = []
-
-    for _ in range(10):
-        ag = AircraftGenerator(config=config)
-        ag.populate()
-
-        kinds = [fo.frequencyunits for fo in ag.forecasted_orders]
-
-        _count_good = sum(1 for kind in kinds if re_kind_good.search(kind))
-
-        count_good.append(_count_good)
-        count_noisy.append(
-            sum(1 for kind in kinds if re_kind_noisy.search(kind)) - _count_good
-        )
-
-        # if it does not match either of good or noisy, then it is bad
-        count_bad.append(
-            sum(
-                1
-                for kind in kinds
-                if all(
-                    [
-                        re_kind_good.search(kind) is None,
-                        re_kind_noisy.search(kind) is None,
-                    ]
-                )
-            )
-        )
-
-    # assert that counts are approximately what we expect
-    tol = 10
-    assert mean(count_good) == pytest.approx(60, abs=tol)  # (100)*0.6 ± tol
-    assert mean(count_noisy) == pytest.approx(30, abs=tol)  # (100)*0.3 ± tol
-    assert mean(count_bad) == pytest.approx(10, abs=tol)  # (100)*0.1 ± tol
-    assert (mean(count_good) + mean(count_noisy)) == pytest.approx(90, abs=tol)
+    assert config._prob_weights == [0.5, 0.4, 0.1]
 
 
 def test_work_orders_have_valid_aircraftregistration(config):
@@ -345,10 +212,7 @@ def test_work_orders_have_valid_aircraftregistration(config):
         wo.aircraftregistration for wo in chain(ag.forecasted_orders, ag.tlb_orders)
     ]
 
-    airc_regs_me = [
-        me.aircraftregistration
-        for me in ag.maintenance_events
-    ]
+    airc_regs_me = [me.aircraftregistration for me in ag.maintenance_events]
 
     # Maintenance event can include several work orders and each work order is
     # inside one maintenance event. However, this reference is not explicit.
@@ -399,6 +263,7 @@ def test_work_orders_have_valid_executiondate(config):
     wo_execution_date = [
         wo.executiondate for wo in chain(ag.tlb_orders, ag.forecasted_orders)
     ]
+
     me_airc_starttimes = [me.starttime for me in ag.maintenance_events]
     me_airc_endtimes = [me.starttime + me.duration for me in ag.maintenance_events]
 
@@ -421,12 +286,10 @@ def test_slots_with_same_aircraft_dont_overlap():
     WHERE NOT EXISTS
     (SELECT * FROM flights f2 WHERE f1.flightid <> f2.flightid and f1.aircraftregistration = f2.aircraftregistration
     and (f1.actualdeparture, f1.actualarrival) overlaps (f2.actualdeparture,f2.actualarrival));
-
-    currently ~9900 out of 10000 rows don't pass this test
     """
 
-    config = BaseConfig(size=1000)
-    config._prob_weights = [1, 0, 0]
+    config = BaseConfig(size=100)
+    assert config._prob_weights == [1, 0, 0]
     ag = AircraftGenerator(config=config)
     ag.populate()
 
@@ -437,6 +300,7 @@ def test_slots_with_same_aircraft_dont_overlap():
     assert ag.config.size == config.size
     assert len(ag.flight_slots) == config.size
 
+    bad_checks_count = 0
     for ar in aircraft_registrations:
         # fetch all flights with that ar code
         same_aircraft_flights = [
@@ -455,4 +319,54 @@ def test_slots_with_same_aircraft_dont_overlap():
                 min_end = min(te1, te2)
                 max_start = max(ts1, ts2)
 
-                assert not min_end > max_start
+                if min_end > max_start:
+                    bad_checks_count += 1
+
+    assert bad_checks_count == 0
+
+
+def test_slots_with_same_aircraft_do_overlap():
+    """tests R20: Two Slots of the same aircraft cannot overlap in time.
+
+    SELECT count(*)
+    FROM flights f1
+    WHERE NOT EXISTS
+    (SELECT * FROM flights f2 WHERE f1.flightid <> f2.flightid and f1.aircraftregistration = f2.aircraftregistration
+    and (f1.actualdeparture, f1.actualarrival) overlaps (f2.actualdeparture,f2.actualarrival));
+    """
+
+    config = BaseConfig(size=100, prob_bad=1)
+    assert config._prob_weights == [0, 0, 1]
+    ag = AircraftGenerator(config=config)
+    ag.populate()
+
+    # fetch all airc. regs.
+    aircraft_registrations = [f.aircraftregistration for f in ag.flight_slots]
+
+    # paranoid check
+    assert ag.config.size == config.size
+    assert len(ag.flight_slots) == config.size
+
+    bad_checks_count = 0
+    for ar in aircraft_registrations:
+        # fetch all flights with that ar code
+        same_aircraft_flights = [
+            f
+            for f in ag.flight_slots
+            if (f.aircraftregistration == ar and f.cancelled is False)
+        ]
+        # check that the flights with this ar don't overlap
+        if len(same_aircraft_flights) >= 2:
+            for flight_1, flight_2 in permutations(same_aircraft_flights, 2):
+                ts1 = flight_1.actualdeparture
+                te1 = flight_1.actualarrival
+                ts2 = flight_2.actualdeparture
+                te2 = flight_2.actualarrival
+
+                min_end = min(te1, te2)
+                max_start = max(ts1, ts2)
+
+                if min_end > max_start:
+                    bad_checks_count += 1
+
+    assert bad_checks_count == 100
