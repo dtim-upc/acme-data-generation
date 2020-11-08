@@ -36,3 +36,19 @@ def test_csv_files_written(tmp_path, gen):
 def test_csv_contents(tmp_path, gen):
     # not implemented
     assert False
+
+
+def test_rowid_is_not_written(tmp_path, gen):
+    # prepare existing folder
+    d = tmp_path / "acme-out"
+    d.mkdir()
+
+    # gen is already populated
+    gen.to_csv(path=d)
+
+    # assuming the previous test passed,
+    for file in d.iterdir():
+        with file.open("rt") as fp:
+            csvreader = csv.reader(fp)
+            header = next(csvreader)  # pop header
+            assert "rowid" not in header

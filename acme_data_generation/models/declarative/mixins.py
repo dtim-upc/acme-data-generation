@@ -15,5 +15,7 @@ class UtilsMixin(object):
         """return instance as a dictionary"""
         inspector = inspect(self.__class__)
         return {
-            c: getattr(self, c) for c in inspector.attrs.keys() if c not in {"type", "_sa_polymorphic_on"}
+            c: getattr(self, c)
+            for c in inspector.attrs.keys()
+            if c not in {"type", "_sa_polymorphic_on", "rowid"}
         }
