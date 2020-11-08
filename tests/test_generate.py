@@ -308,7 +308,7 @@ def test_slots_with_same_aircraft_dont_overlap():
             for f in ag.flight_slots
             if (f.aircraftregistration == ar and f.cancelled is False)
         ]
-        # check that the flights with this ar don't overlap
+        # check that the flights with this aircraftregistration don't overlap
         if len(same_aircraft_flights) >= 2:
             for flight_1, flight_2 in permutations(same_aircraft_flights, 2):
                 ts1 = flight_1.actualdeparture
@@ -325,7 +325,7 @@ def test_slots_with_same_aircraft_dont_overlap():
     assert bad_checks_count == 0
 
 
-def test_slots_with_same_aircraft_do_overlap():
+def test_slots_with_same_aircraft_do_overlap_when_prob_bad_non_zero():
     """tests R20: Two Slots of the same aircraft cannot overlap in time.
 
     SELECT count(*)
