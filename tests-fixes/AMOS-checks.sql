@@ -221,3 +221,19 @@ where not exists (select * from maintenanceevents m2
                   where m2.aircraftregistration = w.aircraftregistration and m2.airport = w.executionplace
                         and w.executiondate > m2.starttime and w.executiondate < m2.starttime+m2.duration)
                         
+
+SELECT distinct w.aircraftregistration FROM workorders w order by 1                        
+
+SELECT t.reporteurid, t.executionplace FROM technicallogbookorders t 
+where t.reporteurclass = 'PIREP'
+group by t.reporteurid, t.executionplace 
+order by 1
+
+select count(*) from technicallogbookorders t2 
+update technicallogbookorders t set executionplace = (select t1.executionplace from technicallogbookorders t1 where t1.reporteurid = t.reporteurid order by 1 limit 1)
+where t.reporteurclass = 'PIREP' 
+
+create index tindex on technicallogbookorders(reporteurid)
+
+                        
+
